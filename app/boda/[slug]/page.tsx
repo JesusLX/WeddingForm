@@ -22,18 +22,46 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createServerSupabaseClient()
   const { data: wedding } = await supabase
     .from('weddings')
-    .select('partner_1, partner_2, wedding_date, cover_image_url')
+    .select('partner_1, partner_2, wedding_date, ceremony_venue, ceremony_address, cover_image_url')
     .eq('slug', slug)
     .eq('is_published', true)
     .single()
 
   if (!wedding) return { title: 'Boda' }
 
+  const title = `${wedding.partner_1} & ${wedding.partner_2} se casan 💍`
+  const dateStr = new Date(wedding.wedding_date).toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  const location = wedding.ceremony_venue ?? wedding.ceremony_address ?? null
+  const description = location
+    ? `${dateStr} · ${location}. Confirma tu asistencia y no te pierdas este día tan especial.`
+    : `${dateStr}. Confirma tu asistencia y no te pierdas este día tan especial.`
+
+  const imageUrl = wedding.cover_image_url ?? null
+  const images = imageUrl
+    ? [{ url: imageUrl, width: 1200, height: 630, alt: title }]
+    : []
+
   return {
-    title: `Boda de ${wedding.partner_1} & ${wedding.partner_2}`,
-    description: `Únete a la celebración de ${wedding.partner_1} y ${wedding.partner_2}`,
+    title,
+    description,
     openGraph: {
-      images: wedding.cover_image_url ? [wedding.cover_image_url] : [],
+      title,
+      description,
+      type: 'website',
+      locale: 'es_ES',
+      siteName: 'Mi Boda',
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : [],
     },
   }
 }

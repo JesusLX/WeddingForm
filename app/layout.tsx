@@ -16,6 +16,7 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: 'Invitaciones de Boda',
   description: 'Crea tu página de boda personalizada y gestiona las confirmaciones de tus invitados.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://miboda.app'),
 }
 
 export default function RootLayout({
