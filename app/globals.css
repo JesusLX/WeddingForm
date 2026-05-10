@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-cream: #FAF7F4;
+  --color-rose-light: #F4D7D7;
+  --color-gold: #C9A84C;
+  --color-gold-dark: #A8882E;
+  --color-charcoal: #2D2D2D;
+  --color-charcoal-light: #555555;
+  --color-petal: #F9EEE8;
+  --color-background: #FAF7F4;
+  --color-foreground: #2D2D2D;
+}
+
+:root {
+  --background: #FAF7F4;
+  --foreground: #2D2D2D;
+}
+
+body {
+  background-color: #FAF7F4;
+  color: #2D2D2D;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s ease-out forwards;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

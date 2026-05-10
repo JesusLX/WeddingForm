@@ -1,0 +1,135 @@
+-- Wedding RSVP SaaS - Schema SQL
+-- Run this in your Supabase SQL editor
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ============================================================
+-- WEDDINGS
+-- ============================================================
+CREATE TABLE weddings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  partner_1 TEXT NOT NULL,
+  partner_2 TEXT NOT NULL,
+  wedding_date DATE NOT NULL,
+  ceremony_time TIME,
+  ceremony_venue TEXT,
+  ceremony_address TEXT,
+  ceremony_maps_url TEXT,
+  reception_time TIME,
+  reception_venue TEXT,
+  reception_address TEXT,
+  reception_maps_url TEXT,
+  same_venue BOOLEAN DEFAULT false,
+  our_story TEXT,
+  cover_image_url TEXT,
+  gallery_image_urls TEXT[] DEFAULT '{}',
+  event_timeline JSONB DEFAULT '[]',
+  dress_code TEXT,
+  dress_code_notes TEXT,
+  rsvp_deadline DATE,
+  bank_iban TEXT,
+  bank_holder TEXT,
+  bank_concept TEXT,
+  gifts_text TEXT,
+  spotify_playlist_url TEXT,
+  faq JSONB DEFAULT '[]',
+  google_sheet_id TEXT,
+  bus_enabled BOOLEAN DEFAULT true,
+  is_published BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================
+-- MENU OPTIONS
+-- ============================================================
+CREATE TABLE menu_options (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  emoji TEXT DEFAULT '🍽️',
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================
+-- EXPECTED GUESTS (lista de invitados que la pareja sube)
+-- ============================================================
+CREATE TABLE expected_guests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  rsvp_response_id UUID,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================
+-- RSVP RESPONSES
+-- ============================================================
+CREATE TABLE rsvp_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  guest_name TEXT NOT NULL,
+  attendance BOOLEAN NOT NULL,
+  adults_count INT DEFAULT 1,
+  has_children BOOLEAN DEFAULT false,
+  children_count INT DEFAULT 0,
+  children_want_menu BOOLEAN DEFAULT false,
+  menu_option_id UUID REFERENCES menu_options,
+  needs_bus BOOLEAN DEFAULT false,
+  allergies TEXT,
+  song_request TEXT,
+  message TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- FK from expected_guests to rsvp_responses (added after both tables exist)
+ALTER TABLE expected_guests
+  ADD CONSTRAINT fk_rsvp_response
+  FOREIGN KEY (rsvp_response_id)
+  REFERENCES rsvp_responses(id)
+  ON DELETE SET NULL;
+
+-- ============================================================
+-- ROW LEVEL SECURITY
+-- ============================================================
+ALTER TABLE weddings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE menu_options ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rsvp_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expected_guests ENABLE ROW LEVEL SECURITY;
+
+-- Weddings: owner can CRUD, anyone can SELECT published
+CREATE POLICY "owner_all" ON weddings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "public_read" ON weddings FOR SELECT USING (is_published = true);
+
+-- Menu options: owner via wedding, public read published weddings
+CREATE POLICY "owner_all" ON menu_options FOR ALL
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+CREATE POLICY "public_read" ON menu_options FOR SELECT
+  USING (wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
+
+-- RSVP responses: owner reads all, anyone can INSERT
+CREATE POLICY "owner_read" ON rsvp_responses FOR SELECT
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+CREATE POLICY "public_insert" ON rsvp_responses FOR INSERT WITH CHECK (true);
+
+-- Expected guests: owner only
+CREATE POLICY "owner_all" ON expected_guests FOR ALL
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+
+-- ============================================================
+-- UPDATED_AT TRIGGER
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER weddings_updated_at
+  BEFORE UPDATE ON weddings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
