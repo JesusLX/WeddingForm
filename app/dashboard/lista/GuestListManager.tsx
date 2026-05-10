@@ -37,7 +37,8 @@ export function GuestListManager({
     setSaving(false)
   }
 
-  async function deleteGuest(id: string) {
+  async function deleteGuest(id: string, name: string) {
+    if (!confirm(`¿Eliminar a "${name}" de la lista?`)) return
     await supabase.from('expected_guests').delete().eq('id', id)
     setGuests((prev) => prev.filter((g) => g.id !== id))
   }
@@ -51,11 +52,15 @@ export function GuestListManager({
     }
     if (!rows.length) return
     setSaving(true)
-    const { data } = await supabase.from('expected_guests').insert(rows).select()
-    if (data) setGuests((prev) => [...prev, ...data.map((g) => ({ ...g, rsvp_response: null }))])
+    const { data, error } = await supabase.from('expected_guests').insert(rows).select()
+    setSaving(false)
+    if (error || !data) {
+      alert('Error al importar. Revisa el formato e inténtalo de nuevo.')
+      return
+    }
+    setGuests((prev) => [...prev, ...data.map((g) => ({ ...g, rsvp_response: null }))])
     setCsvText('')
     setShowCsvImport(false)
-    setSaving(false)
   }
 
   const confirmed = guests.filter((g) => g.rsvp_response?.attendance === true).length
@@ -163,7 +168,7 @@ export function GuestListManager({
                   <span className="text-xs" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
                     {g.rsvp_response ? (g.rsvp_response.attendance ? '✅ Confirmado' : '❌ No asiste') : '⏳ Pendiente'}
                   </span>
-                  <button onClick={() => deleteGuest(g.id)} className="text-xs hover:opacity-60" style={{ color: '#EF5350' }}>
+                  <button onClick={() => deleteGuest(g.id, g.name)} className="text-xs hover:opacity-60" style={{ color: '#EF5350' }}>
                     ✕
                   </button>
                 </div>

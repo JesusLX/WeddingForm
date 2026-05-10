@@ -48,6 +48,19 @@ export async function POST(req: NextRequest) {
 
     const attendance = data.attendance === 'yes'
 
+    // Validate menu option belongs to this wedding
+    if (attendance && data.menu_option_id) {
+      const { data: menuCheck } = await supabase
+        .from('menu_options')
+        .select('id')
+        .eq('id', data.menu_option_id)
+        .eq('wedding_id', data.wedding_id)
+        .single()
+      if (!menuCheck) {
+        return NextResponse.json({ error: 'Opción de menú no válida' }, { status: 400 })
+      }
+    }
+
     // Save to Supabase
     const { data: response, error: insertError } = await supabase
       .from('rsvp_responses')
@@ -91,6 +104,7 @@ export async function POST(req: NextRequest) {
           .from('menu_options')
           .select('*')
           .eq('id', data.menu_option_id)
+          .eq('wedding_id', data.wedding_id)
           .single()
         menuOption = opt
       }

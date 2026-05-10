@@ -35,28 +35,43 @@ export default async function DashboardPage() {
     )
   }
 
-  // Stats
-  const { data: responses } = await supabase
-    .from('rsvp_responses')
-    .select('attendance, adults_count, children_count, needs_bus, menu_option_id')
-    .eq('wedding_id', wedding.id)
+  // Stats — parallel queries with aggregation
+  const [
+    { count: confirmedCount },
+    { count: declinedCount },
+    { data: aggregates },
+    { count: pendingCount },
+  ] = await Promise.all([
+    supabase
+      .from('rsvp_responses')
+      .select('*', { count: 'exact', head: true })
+      .eq('wedding_id', wedding.id)
+      .eq('attendance', true),
+    supabase
+      .from('rsvp_responses')
+      .select('*', { count: 'exact', head: true })
+      .eq('wedding_id', wedding.id)
+      .eq('attendance', false),
+    supabase
+      .from('rsvp_responses')
+      .select('adults_count, children_count, needs_bus')
+      .eq('wedding_id', wedding.id)
+      .eq('attendance', true),
+    supabase
+      .from('expected_guests')
+      .select('*', { count: 'exact', head: true })
+      .eq('wedding_id', wedding.id)
+      .is('rsvp_response_id', null),
+  ])
 
-  const { data: expectedGuests } = await supabase
-    .from('expected_guests')
-    .select('id, rsvp_response_id')
-    .eq('wedding_id', wedding.id)
-
-  const confirmed = responses?.filter((r) => r.attendance) ?? []
-  const declined = responses?.filter((r) => !r.attendance) ?? []
-  const totalAdults = confirmed.reduce((s, r) => s + (r.adults_count ?? 0), 0)
-  const totalChildren = confirmed.reduce((s, r) => s + (r.children_count ?? 0), 0)
-  const needsBus = confirmed.filter((r) => r.needs_bus).length
-  const pendingCount = (expectedGuests ?? []).filter((g) => !g.rsvp_response_id).length
+  const totalAdults = (aggregates ?? []).reduce((s, r) => s + (r.adults_count ?? 0), 0)
+  const totalChildren = (aggregates ?? []).reduce((s, r) => s + (r.children_count ?? 0), 0)
+  const needsBus = (aggregates ?? []).filter((r) => r.needs_bus).length
 
   const stats = [
-    { label: 'Confirmados', value: confirmed.length, color: '#4CAF50', emoji: '✅' },
-    { label: 'No asisten', value: declined.length, color: '#EF5350', emoji: '❌' },
-    { label: 'Pendientes', value: pendingCount, color: '#C9A84C', emoji: '⏳' },
+    { label: 'Confirmados', value: confirmedCount ?? 0, color: '#4CAF50', emoji: '✅' },
+    { label: 'No asisten', value: declinedCount ?? 0, color: '#EF5350', emoji: '❌' },
+    { label: 'Pendientes', value: pendingCount ?? 0, color: '#C9A84C', emoji: '⏳' },
     { label: 'Adultos totales', value: totalAdults, color: '#2196F3', emoji: '👥' },
     { label: 'Niños totales', value: totalChildren, color: '#9C27B0', emoji: '👦' },
     { label: 'Autobús', value: needsBus, color: '#FF9800', emoji: '🚌' },

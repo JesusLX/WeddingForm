@@ -61,6 +61,27 @@ export function RSVPForm({
     }
   }
 
+  const deadlinePassed =
+    !!wedding.rsvp_deadline && new Date(wedding.rsvp_deadline) < new Date()
+
+  if (deadlinePassed) {
+    return (
+      <div className="text-center py-10">
+        <div className="text-4xl mb-4">📅</div>
+        <h3
+          className="text-xl mb-2"
+          style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}
+        >
+          El plazo de confirmación ha finalizado
+        </h3>
+        <p className="text-sm" style={{ color: '#555555' }}>
+          La fecha límite para confirmar asistencia era el{' '}
+          {format(new Date(wedding.rsvp_deadline!), "d 'de' MMMM 'de' yyyy", { locale: es })}.
+        </p>
+      </div>
+    )
+  }
+
   if (status === 'success') {
     return (
       <div className="text-center py-12">
