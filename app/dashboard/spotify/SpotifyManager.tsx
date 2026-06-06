@@ -16,6 +16,7 @@ export function SpotifyManager({
   const [description, setDescription] = useState(initialDescription)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [iframeKey, setIframeKey] = useState(0)
   const supabase = createClient()
 
   const embedUrl = getSpotifyEmbedUrl(url)
@@ -83,7 +84,18 @@ export function SpotifyManager({
 
       {embedUrl && (
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #F4D7D7' }}>
+          <div className="flex justify-end px-3 pt-2" style={{ backgroundColor: '#FAF7F4' }}>
+            <button
+              onClick={() => setIframeKey(k => k + 1)}
+              className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70"
+              style={{ color: '#9D8A7A' }}
+              title="Recargar widget"
+            >
+              🔄 Recargar
+            </button>
+          </div>
           <iframe
+            key={iframeKey}
             src={embedUrl}
             width="100%"
             height="352"
