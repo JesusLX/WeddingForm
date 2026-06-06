@@ -35,6 +35,7 @@ CREATE TABLE weddings (
   bank_concept TEXT,
   gifts_text TEXT,
   spotify_playlist_url TEXT,
+  spotify_description TEXT,
   faq JSONB DEFAULT '[]',
   google_sheet_id TEXT,
   bus_enabled BOOLEAN DEFAULT true,
