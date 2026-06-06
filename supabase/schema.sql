@@ -77,16 +77,23 @@ CREATE TABLE rsvp_responses (
   guest_name TEXT NOT NULL,
   attendance BOOLEAN NOT NULL,
   adults_count INT DEFAULT 1,
+  adult_names TEXT[] DEFAULT '{}',
+  adult_menus TEXT[] DEFAULT '{}',
   has_children BOOLEAN DEFAULT false,
   children_count INT DEFAULT 0,
-  children_want_menu BOOLEAN DEFAULT false,
-  menu_option_id UUID REFERENCES menu_options,
-  needs_bus BOOLEAN DEFAULT false,
+  children_names TEXT[] DEFAULT '{}',
+  children_menus TEXT[] DEFAULT '{}',
+  bus_option TEXT DEFAULT 'none',
   allergies TEXT,
   song_request TEXT,
   message TEXT,
   submitted_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Migration (run if table already exists):
+-- ALTER TABLE rsvp_responses
+--   ADD COLUMN IF NOT EXISTS adult_names TEXT[] DEFAULT '{}',
+--   ADD COLUMN IF NOT EXISTS children_names TEXT[] DEFAULT '{}';
 
 -- FK from expected_guests to rsvp_responses (added after both tables exist)
 ALTER TABLE expected_guests

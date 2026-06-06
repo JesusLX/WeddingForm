@@ -21,7 +21,36 @@ export function GuestListManager({
   const [saving, setSaving] = useState(false)
   const [csvText, setCsvText] = useState('')
   const [showCsvImport, setShowCsvImport] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
   const supabase = createClient()
+
+  function startEdit(g: GuestWithResponse) {
+    setEditingId(g.id)
+    setEditName(g.name)
+    setEditEmail(g.email ?? '')
+    setEditPhone(g.phone ?? '')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(id: string) {
+    if (!editName.trim()) return
+    const { error } = await supabase
+      .from('expected_guests')
+      .update({ name: editName.trim(), email: editEmail || null, phone: editPhone || null })
+      .eq('id', id)
+    if (!error) {
+      setGuests(prev => prev.map(g =>
+        g.id === id ? { ...g, name: editName.trim(), email: editEmail || null, phone: editPhone || null } : g
+      ))
+      setEditingId(null)
+    }
+  }
 
   async function addGuest() {
     if (!name.trim()) return
@@ -37,8 +66,8 @@ export function GuestListManager({
     setSaving(false)
   }
 
-  async function deleteGuest(id: string, name: string) {
-    if (!confirm(`¿Eliminar a "${name}" de la lista?`)) return
+  async function deleteGuest(id: string, guestName: string) {
+    if (!confirm(`¿Eliminar a "${guestName}" de la lista?`)) return
     await supabase.from('expected_guests').delete().eq('id', id)
     setGuests((prev) => prev.filter((g) => g.id !== id))
   }
@@ -69,6 +98,7 @@ export function GuestListManager({
 
   const inputClass = 'px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-amber-300'
   const inputStyle = { borderColor: '#F4D7D7', backgroundColor: 'white', color: '#2D2D2D' }
+  const editInputClass = 'px-3 py-1.5 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-amber-300'
 
   return (
     <div className="space-y-4">
@@ -147,31 +177,92 @@ export function GuestListManager({
             {guests.map((g) => (
               <li
                 key={g.id}
-                className="flex items-center justify-between px-4 py-3 rounded-xl"
+                className="rounded-xl px-4 py-3"
                 style={{ backgroundColor: '#F9EEE8' }}
               >
-                <div className="flex items-center gap-3">
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{
-                      backgroundColor: g.rsvp_response
-                        ? g.rsvp_response.attendance ? '#4CAF50' : '#EF5350'
-                        : '#C9A84C',
-                    }}
-                  />
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: '#2D2D2D' }}>{g.name}</p>
-                    {g.email && <p className="text-xs" style={{ color: '#888' }}>{g.email}</p>}
+                {editingId === g.id ? (
+                  <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <input
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder="Nombre *"
+                      className={editInputClass}
+                      style={{ ...inputStyle, flex: 2 }}
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') saveEdit(g.id)
+                        if (e.key === 'Escape') cancelEdit()
+                      }}
+                    />
+                    <input
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      placeholder="Email"
+                      className={editInputClass}
+                      style={{ ...inputStyle, flex: 2 }}
+                    />
+                    <input
+                      value={editPhone}
+                      onChange={e => setEditPhone(e.target.value)}
+                      placeholder="Teléfono"
+                      className={editInputClass}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => saveEdit(g.id)}
+                        disabled={!editName.trim()}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+                        style={{ backgroundColor: '#4CAF50' }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ color: '#888', backgroundColor: '#0000001a' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
-                    {g.rsvp_response ? (g.rsvp_response.attendance ? '✅ Confirmado' : '❌ No asiste') : '⏳ Pendiente'}
-                  </span>
-                  <button onClick={() => deleteGuest(g.id, g.name)} className="text-xs hover:opacity-60" style={{ color: '#EF5350' }}>
-                    ✕
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: g.rsvp_response
+                            ? g.rsvp_response.attendance ? '#4CAF50' : '#EF5350'
+                            : '#C9A84C',
+                        }}
+                      />
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: '#2D2D2D' }}>{g.name}</p>
+                        {(g.email || g.phone) && (
+                          <p className="text-xs" style={{ color: '#888' }}>
+                            {[g.email, g.phone].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
+                        {g.rsvp_response ? (g.rsvp_response.attendance ? '✅ Confirmado' : '❌ No asiste') : '⏳ Pendiente'}
+                      </span>
+                      <button
+                        onClick={() => startEdit(g)}
+                        className="text-xs px-2 py-1 rounded-lg hover:opacity-70"
+                        style={{ color: '#C9A84C', backgroundColor: '#C9A84C22' }}
+                      >
+                        Editar
+                      </button>
+                      <button onClick={() => deleteGuest(g.id, g.name)} className="text-xs hover:opacity-60" style={{ color: '#EF5350' }}>
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

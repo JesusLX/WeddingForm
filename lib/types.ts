@@ -69,9 +69,11 @@ export interface RsvpResponse {
   guest_name: string
   attendance: boolean
   adults_count: number
+  adult_names: string[]
   adult_menus: string[]
   has_children: boolean
   children_count: number
+  children_names: string[]
   children_menus: (string | null)[]
   bus_option: BusOption
   allergies: string | null

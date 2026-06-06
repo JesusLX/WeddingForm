@@ -8,9 +8,11 @@ const schema = z.object({
   guest_name: z.string().min(2).max(200),
   attendance: z.enum(['yes', 'no']),
   adults_count: z.coerce.number().min(1).max(20).optional(),
+  adult_names: z.array(z.string()).optional(),
   adult_menus: z.array(z.string()).optional(),
   has_children: z.enum(['yes', 'no']).optional(),
   children_count: z.coerce.number().min(0).max(20).optional(),
+  children_names: z.array(z.string()).optional(),
   children_menus: z.array(z.string().nullable()).optional(),
   bus_option: z.enum(['none', 'outbound', 'return', 'both']).optional(),
   allergies: z.string().max(500).optional(),
@@ -75,9 +77,11 @@ export async function POST(req: NextRequest) {
         guest_name: data.guest_name,
         attendance,
         adults_count: attendance ? (data.adults_count ?? 1) : 0,
+        adult_names: attendance ? (data.adult_names ?? []).map(n => n.trim()).filter(Boolean) : [],
         adult_menus: attendance ? (data.adult_menus ?? []).filter(s => s !== '') : [],
         has_children: attendance ? hasChildren : false,
         children_count: attendance && hasChildren ? (data.children_count ?? 0) : 0,
+        children_names: attendance && hasChildren ? (data.children_names ?? []).map(n => n.trim()) : [],
         children_menus: attendance && hasChildren ? (data.children_menus ?? []) : [],
         bus_option: attendance ? (data.bus_option ?? 'none') : 'none',
         allergies: data.allergies || null,
@@ -93,12 +97,19 @@ export async function POST(req: NextRequest) {
     }
 
     if (response) {
-      await supabase
-        .from('expected_guests')
-        .update({ rsvp_response_id: response.id })
-        .eq('wedding_id', data.wedding_id)
-        .ilike('name', data.guest_name)
-        .is('rsvp_response_id', null)
+      // Link the submitter and all named adults to their expected_guest records
+      const namesToLink = [
+        data.guest_name,
+        ...(data.adult_names ?? []).map(n => n.trim()).filter(Boolean),
+      ]
+      for (const name of namesToLink) {
+        await supabase
+          .from('expected_guests')
+          .update({ rsvp_response_id: response.id })
+          .eq('wedding_id', data.wedding_id)
+          .ilike('name', name)
+          .is('rsvp_response_id', null)
+      }
     }
 
     // Write to Google Sheets (non-blocking)

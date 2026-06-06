@@ -63,7 +63,8 @@ function MenuGrid({
 export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptions: MenuOption[] }) {
   const [status, setStatus] = useState<Status>('idle')
   const [adultMenus, setAdultMenus] = useState<string[]>([''])
-  const [childrenData, setChildrenData] = useState<{ wantsMenu: boolean; menuId: string }[]>([])
+  const [adultNames, setAdultNames] = useState<string[]>([''])
+  const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string }[]>([])
   const [busIda, setBusIda] = useState(false)
   const [busVuelta, setBusVuelta] = useState(false)
   const [hp, setHp] = useState('')
@@ -76,6 +77,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
 
   const attendance = watch('attendance')
   const hasChildren = watch('has_children')
+  const guestName = watch('guest_name')
   const rawAdultsCount = watch('adults_count')
   const rawChildrenCount = watch('children_count')
   const adultsCount = Math.max(1, Number(rawAdultsCount) || 1)
@@ -89,12 +91,24 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
       while (arr.length < adultsCount) arr.push('')
       return arr.slice(0, adultsCount)
     })
+    setAdultNames(prev => {
+      const arr = [...prev]
+      while (arr.length < adultsCount) arr.push('')
+      return arr.slice(0, adultsCount)
+    })
   }, [adultsCount])
+
+  // Pre-fill first adult name with submitter name
+  useEffect(() => {
+    if (adultsCount > 1 && guestName) {
+      setAdultNames(prev => prev[0] ? prev : prev.map((n, i) => i === 0 ? guestName : n))
+    }
+  }, [guestName, adultsCount])
 
   useEffect(() => {
     setChildrenData(prev => {
       const arr = [...prev]
-      while (arr.length < childrenCount) arr.push({ wantsMenu: false, menuId: '' })
+      while (arr.length < childrenCount) arr.push({ name: '', wantsMenu: false, menuId: '' })
       return arr.slice(0, childrenCount)
     })
   }, [childrenCount])
@@ -113,7 +127,9 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
         body: JSON.stringify({
           ...values,
           wedding_id: wedding.id,
+          adult_names: isAttending && adultsCount > 1 ? adultNames : [],
           adult_menus: isAttending ? adultMenus : [],
+          children_names: isAttending && bringsChildren ? childrenData.map(c => c.name) : [],
           children_menus: isAttending && bringsChildren
             ? childrenData.map(c => c.wantsMenu ? (c.menuId || null) : null)
             : [],
@@ -221,21 +237,42 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
             />
           </div>
 
-          {/* Menu per adult */}
-          {menuOptions.length > 0 && (
-            <div className="space-y-4">
+          {/* Per-adult cards when >1: name + menu */}
+          {adultsCount > 1 && (
+            <div className="space-y-3">
               {Array.from({ length: adultsCount }, (_, i) => (
-                <div key={i}>
-                  <label className={labelClass} style={labelStyle}>
-                    {adultsCount === 1 ? 'Elección de menú' : `Menú · Adulto ${i + 1}`}
-                  </label>
-                  <MenuGrid
-                    selectedId={adultMenus[i] ?? ''}
-                    onSelect={id => setAdultMenus(prev => prev.map((m, idx) => idx === i ? id : m))}
-                    menuOptions={menuOptions}
+                <div key={i} className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F9EEE8' }}>
+                  <p className="text-sm font-semibold" style={{ color: '#2D2D2D' }}>
+                    Adulto {i + 1}{i === 0 ? ' (tú)' : ''}
+                  </p>
+                  <input
+                    value={adultNames[i] ?? ''}
+                    onChange={e => setAdultNames(prev => prev.map((n, idx) => idx === i ? e.target.value : n))}
+                    placeholder="Nombre completo"
+                    className={inputClass}
+                    style={inputStyle}
                   />
+                  {menuOptions.length > 0 && (
+                    <MenuGrid
+                      selectedId={adultMenus[i] ?? ''}
+                      onSelect={id => setAdultMenus(prev => prev.map((m, idx) => idx === i ? id : m))}
+                      menuOptions={menuOptions}
+                    />
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Single adult: just menu */}
+          {adultsCount === 1 && menuOptions.length > 0 && (
+            <div>
+              <label className={labelClass} style={labelStyle}>Elección de menú</label>
+              <MenuGrid
+                selectedId={adultMenus[0] ?? ''}
+                onSelect={id => setAdultMenus([id])}
+                menuOptions={menuOptions}
+              />
             </div>
           )}
 
@@ -263,9 +300,16 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                 <div className="space-y-3">
                   {Array.from({ length: childrenCount }, (_, i) => (
                     <div key={i} className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F9EEE8' }}>
-                      <p className="text-sm font-medium" style={{ color: '#2D2D2D' }}>
+                      <p className="text-sm font-semibold" style={{ color: '#2D2D2D' }}>
                         {childrenCount === 1 ? 'El niño/a' : `Niño/a ${i + 1}`}
                       </p>
+                      <input
+                        value={childrenData[i]?.name ?? ''}
+                        onChange={e => setChildrenData(prev => prev.map((c, idx) => idx === i ? { ...c, name: e.target.value } : c))}
+                        placeholder="Nombre completo"
+                        className={inputClass}
+                        style={inputStyle}
+                      />
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"

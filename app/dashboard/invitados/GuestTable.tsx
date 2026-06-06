@@ -20,9 +20,11 @@ interface Response {
   guest_name: string
   attendance: boolean
   adults_count: number
+  adult_names: string[]
   adult_menus: string[]
   has_children: boolean
   children_count: number
+  children_names: string[]
   children_menus: (string | null)[]
   bus_option: string
   allergies: string | null
@@ -58,15 +60,18 @@ export function GuestTable({
 
   function exportCSV() {
     const headers = [
-      'Nombre', 'Asiste', 'Adultos', 'Menú adultos', 'Niños', 'Menú niños',
+      'Nombre', 'Asiste', 'Adultos', 'Nombres adultos', 'Menú adultos',
+      'Niños', 'Nombres niños', 'Menú niños',
       'Autobús', 'Alergias', 'Canción', 'Mensaje', 'Fecha',
     ]
     const rows = responses.map((r) => [
       r.guest_name,
       r.attendance ? 'Sí' : 'No',
       r.adults_count,
+      (r.adult_names ?? []).join('; ') || r.guest_name,
       (r.adult_menus ?? []).map((id, i) => `A${i + 1}: ${menuLabel(id, menuOptions)}`).join('; '),
       r.children_count,
+      (r.children_names ?? []).join('; '),
       (r.children_menus ?? []).map((id, i) => `N${i + 1}: ${menuLabel(id, menuOptions)}`).join('; '),
       busLabels[r.bus_option] ?? r.bus_option,
       r.allergies ?? '',
@@ -149,13 +154,31 @@ export function GuestTable({
                     key={r.id}
                     style={{ backgroundColor: i % 2 === 0 ? 'white' : '#FAFAFA', borderTop: '1px solid #F4D7D7' }}
                   >
-                    <td className="px-4 py-3 font-medium" style={{ color: '#2D2D2D', minWidth: 140 }}>
-                      {r.guest_name}
-                      {r.message && (
-                        <span title={r.message} className="ml-1 cursor-help text-xs" style={{ color: '#C9A84C' }}>
-                          💌
-                        </span>
-                      )}
+                    <td className="px-4 py-3 font-medium" style={{ color: '#2D2D2D', minWidth: 160 }}>
+                      <div className="flex items-start gap-1">
+                        <div>
+                          <span>{r.guest_name}</span>
+                          {(r.adult_names ?? []).filter(Boolean).length > 0 && (
+                            <div className="mt-0.5 space-y-0.5">
+                              {(r.adult_names ?? []).filter(Boolean).map((n, idx) => (
+                                <div key={idx} className="text-xs" style={{ color: '#888' }}>+ {n}</div>
+                              ))}
+                            </div>
+                          )}
+                          {(r.children_names ?? []).filter(Boolean).length > 0 && (
+                            <div className="mt-0.5 space-y-0.5">
+                              {(r.children_names ?? []).filter(Boolean).map((n, idx) => (
+                                <div key={idx} className="text-xs" style={{ color: '#888' }}>👶 {n}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {r.message && (
+                          <span title={r.message} className="cursor-help text-xs flex-shrink-0" style={{ color: '#C9A84C' }}>
+                            💌
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span

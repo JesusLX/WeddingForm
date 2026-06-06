@@ -18,7 +18,7 @@ export default async function InvitadosPage() {
   const [{ data: responses }, { data: menuOptions }] = await Promise.all([
     supabase
       .from('rsvp_responses')
-      .select('id, guest_name, attendance, adults_count, adult_menus, has_children, children_count, children_menus, bus_option, allergies, song_request, message, submitted_at')
+      .select('id, guest_name, attendance, adults_count, adult_names, adult_menus, has_children, children_count, children_names, children_menus, bus_option, allergies, song_request, message, submitted_at')
       .eq('wedding_id', wedding.id)
       .order('submitted_at', { ascending: false }),
     supabase
