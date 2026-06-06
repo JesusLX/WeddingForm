@@ -13,7 +13,8 @@ const REL_LABELS: Record<RelationshipType, string> = {
   KNOWS: 'Se conocen',
   APART: 'Separar',
 }
-const CYCLE: RelationshipType[] = ['TOGETHER', 'KNOWS', 'APART']
+
+type Tool = RelationshipType | 'DELETE'
 
 interface Props {
   guests: SeatingGuest[]
@@ -28,14 +29,17 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
   const linkGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null)
   const redrawLinksRef = useRef<((rels: GuestRelationship[]) => void) | null>(null)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [activeTool, setActiveTool] = useState<Tool>('TOGETHER')
 
   // Refs so D3 handlers always have latest values
   const selectedKeyRef = useRef<string | null>(null)
+  const activeToolRef = useRef<Tool>('TOGETHER')
   const relsRef = useRef(relationships)
   const onChangeRef = useRef(onRelationshipsChange)
   const weddingIdRef = useRef(weddingId)
 
   useEffect(() => { selectedKeyRef.current = selectedKey }, [selectedKey])
+  useEffect(() => { activeToolRef.current = activeTool }, [activeTool])
   useEffect(() => { relsRef.current = relationships }, [relationships])
   useEffect(() => { onChangeRef.current = onRelationshipsChange }, [onRelationshipsChange])
   useEffect(() => { weddingIdRef.current = weddingId }, [weddingId])
@@ -110,22 +114,20 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
         const bKey = prev < d.id ? d.id : prev
         const rels = relsRef.current
         const idx = rels.findIndex(r => r.guest_a_key === aKey && r.guest_b_key === bKey)
+        const tool = activeToolRef.current
 
         let newRels: GuestRelationship[]
-        if (idx >= 0) {
-          const next = (CYCLE.indexOf(rels[idx].type) + 1) % CYCLE.length
-          if (next === 0) {
-            newRels = rels.filter((_, i) => i !== idx)
-          } else {
-            newRels = rels.map((r, i) => i === idx ? { ...r, type: CYCLE[next] } : r)
-          }
+        if (tool === 'DELETE') {
+          newRels = idx >= 0 ? rels.filter((_, i) => i !== idx) : rels
+        } else if (idx >= 0) {
+          newRels = rels.map((r, i) => i === idx ? { ...r, type: tool } : r)
         } else {
           newRels = [...rels, {
             id: crypto.randomUUID(),
             wedding_id: weddingIdRef.current,
             guest_a_key: aKey,
             guest_b_key: bKey,
-            type: 'TOGETHER' as RelationshipType,
+            type: tool,
           }]
         }
 
@@ -160,7 +162,6 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
       .attr('font-size', '10px')
       .attr('pointer-events', 'none')
 
-    // Link redraw function stored in ref
     const redrawLinks = (rels: GuestRelationship[]) => {
       linkGroup.selectAll('*').remove()
       const links = rels.map(r => ({
@@ -200,38 +201,65 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
 
   const selectedGuest = guests.find(g => g.key === selectedKey)
 
+  const toolConfig: { tool: Tool; label: string; color: string; dash?: string; icon: string }[] = [
+    { tool: 'TOGETHER', label: 'Misma mesa', color: REL_COLORS.TOGETHER, icon: '💚' },
+    { tool: 'KNOWS',    label: 'Se conocen',  color: REL_COLORS.KNOWS,   icon: '💙' },
+    { tool: 'APART',    label: 'Separar',     color: REL_COLORS.APART,   dash: '5,2', icon: '❤️' },
+    { tool: 'DELETE',   label: 'Borrar',      color: '#888',             icon: '✕' },
+  ]
+
   return (
     <div>
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 mb-3">
-        {(Object.entries(REL_LABELS) as [RelationshipType, string][]).map(([type, label]) => (
-          <div key={type} className="flex items-center gap-1.5 text-xs" style={{ color: '#2D2D2D' }}>
-            <svg width="26" height="10" aria-hidden="true">
-              <line x1="0" y1="5" x2="26" y2="5"
-                stroke={REL_COLORS[type]} strokeWidth="2.5"
-                strokeDasharray={type === 'APART' ? '5,2' : 'none'} />
-            </svg>
-            {label}
-          </div>
-        ))}
-        <div className="flex items-center gap-1.5 text-xs" style={{ color: '#2D2D2D' }}>
-          <span className="inline-block w-4 h-4 rounded-full border border-gray-400" style={{ backgroundColor: '#F4D7D7' }} />
+      {/* Tool selector (legend) */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {toolConfig.map(({ tool, label, color, dash, icon }) => {
+          const isActive = activeTool === tool
+          return (
+            <button
+              key={tool}
+              onClick={() => setActiveTool(tool)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all"
+              style={{
+                backgroundColor: isActive ? color + '22' : '#fff',
+                borderColor: isActive ? color : '#E5D5C5',
+                color: isActive ? color : '#9D8A7A',
+                boxShadow: isActive ? `0 0 0 2px ${color}44` : 'none',
+              }}
+            >
+              {tool !== 'DELETE' ? (
+                <svg width="22" height="8" aria-hidden="true" className="flex-shrink-0">
+                  <line x1="0" y1="4" x2="22" y2="4"
+                    stroke={color} strokeWidth="2.5"
+                    strokeDasharray={dash ?? 'none'} />
+                </svg>
+              ) : (
+                <span>{icon}</span>
+              )}
+              {label}
+            </button>
+          )
+        })}
+        <div className="flex items-center gap-1.5 text-xs ml-2" style={{ color: '#9D8A7A' }}>
+          <span className="inline-block w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: '#F4D7D7' }} />
           Niño
-        </div>
-        <div className="flex items-center gap-1.5 text-xs" style={{ color: '#2D2D2D' }}>
-          <span className="inline-block w-5 h-5 rounded-full border border-gray-400" style={{ backgroundColor: '#C9A84C' }} />
-          Adulto
         </div>
       </div>
 
       {/* Selection banner */}
-      {selectedGuest && (
+      {selectedGuest ? (
         <div className="mb-2 text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-2"
           style={{ backgroundColor: '#FF6B3518', color: '#c0561f', border: '1px solid #FF6B3530' }}>
           <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#FF6B35' }} />
-          <strong>{selectedGuest.name}</strong> seleccionado — haz clic en otro invitado para crear/cambiar relación
+          <strong>{selectedGuest.name}</strong> seleccionado — haz clic en otro invitado para{' '}
+          {activeTool === 'DELETE' ? 'borrar la relación' : `marcar como "${REL_LABELS[activeTool as RelationshipType]}"`}
           <button onClick={() => setSelectedKey(null)} className="ml-1 opacity-60 hover:opacity-100 text-base leading-none">×</button>
         </div>
+      ) : (
+        <p className="mb-2 text-xs" style={{ color: '#9D8A7A' }}>
+          Herramienta activa: <strong style={{ color: activeTool === 'DELETE' ? '#888' : REL_COLORS[activeTool as RelationshipType] }}>
+            {activeTool === 'DELETE' ? 'Borrar relación' : REL_LABELS[activeTool as RelationshipType]}
+          </strong> — haz clic en un invitado para seleccionarlo
+        </p>
       )}
 
       <svg ref={svgRef} className="w-full rounded-xl border"
@@ -239,7 +267,7 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
       />
 
       <p className="text-xs mt-2 text-center" style={{ color: '#9D8A7A' }}>
-        Clic en un invitado → clic en otro para crear/cambiar relación (se cicla entre Misma mesa → Se conocen → Separar → eliminar). Arrastra para mover. Pellizca o rueda para zoom.
+        Selecciona un tipo de relación arriba → clic en dos invitados para aplicarla. Arrastra para mover. Pellizca o rueda para zoom.
       </p>
     </div>
   )
