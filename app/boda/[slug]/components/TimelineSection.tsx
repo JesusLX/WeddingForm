@@ -41,12 +41,19 @@ export function TimelineSection({ wedding }: { wedding: Wedding }) {
                     <p className="text-sm mt-1" style={{ color: '#555555' }}>{event.label}</p>
                   </div>
 
-                  {/* Dot */}
-                  <div className="relative z-10 flex-shrink-0">
-                    <div
-                      className="w-4 h-4 rounded-full border-2"
-                      style={{ backgroundColor: '#FAF7F4', borderColor: '#C9A84C' }}
-                    />
+                  {/* Icon or dot */}
+                  <div className="relative z-10 flex-shrink-0 flex items-center justify-center w-10 h-10" style={{ backgroundColor: '#F9EEE8' }}>
+                    {event.icon ? (
+                      event.icon.startsWith('http') || event.icon.startsWith('/') || event.icon.startsWith('data:') ? (
+                        <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center" style={{ borderColor: '#C9A84C', backgroundColor: '#F9EEE8' }}>
+                          <img src={event.icon} alt="" className="w-6 h-6 object-contain" />
+                        </div>
+                      ) : (
+                        <span className="text-2xl leading-none">{event.icon}</span>
+                      )
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2" style={{ backgroundColor: '#FAF7F4', borderColor: '#C9A84C' }} />
+                    )}
                   </div>
 
                   {/* Spacer */}

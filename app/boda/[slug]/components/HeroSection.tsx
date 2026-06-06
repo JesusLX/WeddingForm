@@ -1,9 +1,21 @@
+'use client'
+import { useEffect, useState } from 'react'
 import { formatDate } from '@/lib/utils'
 import { CountdownTimer } from './CountdownTimer'
 import type { Wedding } from '@/lib/types'
 
 export function HeroSection({ wedding }: { wedding: Wedding }) {
   const dateLabel = formatDate(wedding.wedding_date)
+  const [opacity, setOpacity] = useState(1)
+
+  useEffect(() => {
+    function onScroll() {
+      const fade = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.2))
+      setOpacity(fade)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -11,7 +23,7 @@ export function HeroSection({ wedding }: { wedding: Wedding }) {
       {wedding.cover_image_url ? (
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${wedding.cover_image_url})` }}
+          style={{ backgroundImage: `url("${wedding.cover_image_url}")` }}
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-rose-200 via-pink-100 to-amber-100" />
@@ -28,14 +40,16 @@ export function HeroSection({ wedding }: { wedding: Wedding }) {
         >
           Nos casamos
         </p>
-        <h1
-          className="text-5xl md:text-7xl lg:text-8xl text-white mb-4 leading-tight animate-fade-in-up"
-          style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.25s', opacity: 0 }}
-        >
-          {wedding.partner_1}
-          <span className="block text-3xl md:text-4xl text-white/70 my-2">&</span>
-          {wedding.partner_2}
-        </h1>
+        <div style={{ opacity, transition: 'opacity 0.05s linear' }}>
+          <h1
+            className="text-5xl md:text-7xl lg:text-8xl text-white mb-4 leading-tight animate-fade-in-up"
+            style={{ fontFamily: 'var(--font-playfair)', animationDelay: '0.25s', opacity: 0 }}
+          >
+            {wedding.partner_1}
+            <span className="block text-3xl md:text-4xl text-white/70 my-2">&</span>
+            {wedding.partner_2}
+          </h1>
+        </div>
 
         <div
           className="flex items-center justify-center gap-3 mb-8 animate-fade-in-up"

@@ -92,7 +92,7 @@ export function EventDetailsSection({ wedding }: { wedding: Wedding }) {
           {hasCeremony && (
             <ScrollReveal>
               <VenueCard
-                title="Ceremonia"
+                title={wedding.same_venue ? 'Evento' : 'Ceremonia'}
                 time={wedding.ceremony_time}
                 venue={wedding.ceremony_venue}
                 address={wedding.ceremony_address}

@@ -2,30 +2,53 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+const busLabels: Record<string, string> = {
+  none: '—',
+  outbound: 'Solo ida 🚌',
+  return: 'Solo vuelta 🚌',
+  both: 'Ida y vuelta 🔄',
+}
+
+interface MenuRef {
+  id: string
+  name: string
+  emoji: string
+}
 
 interface Response {
   id: string
   guest_name: string
   attendance: boolean
   adults_count: number
+  adult_menus: string[]
   has_children: boolean
   children_count: number
-  children_want_menu: boolean
-  needs_bus: boolean
+  children_menus: (string | null)[]
+  bus_option: string
   allergies: string | null
   song_request: string | null
   message: string | null
   submitted_at: string
-  menu_option: { name: string; emoji: string } | null
 }
 
-export function GuestTable({ responses }: { responses: Response[] }) {
+function menuLabel(id: string | null, opts: MenuRef[]): string {
+  if (!id) return '—'
+  const opt = opts.find(o => o.id === id)
+  return opt ? `${opt.emoji} ${opt.name}` : '?'
+}
+
+export function GuestTable({
+  responses,
+  menuOptions,
+}: {
+  responses: Response[]
+  menuOptions: MenuRef[]
+}) {
   const [tab, setTab] = useState<'all' | 'confirmed' | 'declined'>('all')
   const [search, setSearch] = useState('')
 
   const filtered = responses.filter((r) => {
-    const matchesTab =
-      tab === 'all' || (tab === 'confirmed' ? r.attendance : !r.attendance)
+    const matchesTab = tab === 'all' || (tab === 'confirmed' ? r.attendance : !r.attendance)
     const matchesSearch = r.guest_name.toLowerCase().includes(search.toLowerCase())
     return matchesTab && matchesSearch
   })
@@ -35,17 +58,17 @@ export function GuestTable({ responses }: { responses: Response[] }) {
 
   function exportCSV() {
     const headers = [
-      'Nombre', 'Asiste', 'Adultos', 'Niños', 'Menú niños', 'Menú', 'Autobús',
-      'Alergias', 'Canción', 'Mensaje', 'Fecha',
+      'Nombre', 'Asiste', 'Adultos', 'Menú adultos', 'Niños', 'Menú niños',
+      'Autobús', 'Alergias', 'Canción', 'Mensaje', 'Fecha',
     ]
     const rows = responses.map((r) => [
       r.guest_name,
       r.attendance ? 'Sí' : 'No',
       r.adults_count,
+      (r.adult_menus ?? []).map((id, i) => `A${i + 1}: ${menuLabel(id, menuOptions)}`).join('; '),
       r.children_count,
-      r.children_want_menu ? 'Sí' : 'No',
-      r.menu_option ? `${r.menu_option.emoji} ${r.menu_option.name}` : '',
-      r.needs_bus ? 'Sí' : 'No',
+      (r.children_menus ?? []).map((id, i) => `N${i + 1}: ${menuLabel(id, menuOptions)}`).join('; '),
+      busLabels[r.bus_option] ?? r.bus_option,
       r.allergies ?? '',
       r.song_request ?? '',
       r.message ?? '',
@@ -68,7 +91,6 @@ export function GuestTable({ responses }: { responses: Response[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Tabs and export */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           {tabs.map((t) => (
@@ -105,10 +127,7 @@ export function GuestTable({ responses }: { responses: Response[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div
-          className="rounded-2xl p-12 text-center"
-          style={{ backgroundColor: 'white', border: '1px solid #F4D7D7' }}
-        >
+        <div className="rounded-2xl p-12 text-center" style={{ backgroundColor: 'white', border: '1px solid #F4D7D7' }}>
           <p style={{ color: '#888' }}>Sin confirmaciones todavía</p>
         </div>
       ) : (
@@ -117,12 +136,8 @@ export function GuestTable({ responses }: { responses: Response[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: '#F9EEE8' }}>
-                  {['Nombre', 'Asiste', 'Adultos', 'Niños', 'Menú', 'Autobús', 'Alergias', 'Canción', 'Fecha'].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wide"
-                      style={{ color: '#555555' }}
-                    >
+                  {['Nombre', 'Asiste', 'Adultos', 'Menús', 'Niños', 'Autobús', 'Alergias', 'Canción', 'Fecha'].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wide" style={{ color: '#555555' }}>
                       {h}
                     </th>
                   ))}
@@ -137,11 +152,7 @@ export function GuestTable({ responses }: { responses: Response[] }) {
                     <td className="px-4 py-3 font-medium" style={{ color: '#2D2D2D', minWidth: 140 }}>
                       {r.guest_name}
                       {r.message && (
-                        <span
-                          title={r.message}
-                          className="ml-1 cursor-help text-xs"
-                          style={{ color: '#C9A84C' }}
-                        >
+                        <span title={r.message} className="ml-1 cursor-help text-xs" style={{ color: '#C9A84C' }}>
                           💌
                         </span>
                       )}
@@ -158,14 +169,29 @@ export function GuestTable({ responses }: { responses: Response[] }) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center" style={{ color: '#555' }}>{r.adults_count}</td>
-                    <td className="px-4 py-3 text-center" style={{ color: '#555' }}>
-                      {r.has_children ? `${r.children_count} ${r.children_want_menu ? '🍼' : ''}` : '—'}
+                    <td className="px-4 py-3" style={{ color: '#555', minWidth: 160 }}>
+                      {(r.adult_menus ?? []).length > 0 ? (
+                        <div className="space-y-0.5">
+                          {(r.adult_menus ?? []).map((id, idx) => (
+                            <div key={idx} className="text-xs">
+                              {r.adults_count > 1 ? <span className="text-gray-400">A{idx + 1}: </span> : null}
+                              {menuLabel(id, menuOptions)}
+                            </div>
+                          ))}
+                          {(r.children_menus ?? []).filter(Boolean).map((id, idx) => (
+                            <div key={`c${idx}`} className="text-xs">
+                              <span className="text-gray-400">N{idx + 1}: </span>
+                              {menuLabel(id, menuOptions)}
+                            </div>
+                          ))}
+                        </div>
+                      ) : '—'}
                     </td>
-                    <td className="px-4 py-3" style={{ color: '#555' }}>
-                      {r.menu_option ? `${r.menu_option.emoji} ${r.menu_option.name}` : '—'}
-                    </td>
                     <td className="px-4 py-3 text-center" style={{ color: '#555' }}>
-                      {r.needs_bus ? '🚌 Sí' : '—'}
+                      {r.has_children ? r.children_count : '—'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: '#555' }}>
+                      {busLabels[r.bus_option] ?? '—'}
                     </td>
                     <td className="px-4 py-3 max-w-[150px] truncate" style={{ color: '#555' }} title={r.allergies ?? ''}>
                       {r.allergies || '—'}

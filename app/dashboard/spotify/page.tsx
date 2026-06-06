@@ -8,7 +8,7 @@ export default async function SpotifyPage() {
   if (!user) redirect('/login')
 
   const { data: wedding } = await supabase
-    .from('weddings').select('id, spotify_playlist_url').eq('user_id', user.id).single()
+    .from('weddings').select('id, spotify_playlist_url, spotify_description').eq('user_id', user.id).single()
   if (!wedding) redirect('/dashboard/configurar')
 
   return (
@@ -16,7 +16,11 @@ export default async function SpotifyPage() {
       <h1 className="text-3xl italic mb-6" style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}>
         Playlist de Spotify
       </h1>
-      <SpotifyManager weddingId={wedding.id} initialUrl={wedding.spotify_playlist_url ?? ''} />
+      <SpotifyManager
+        weddingId={wedding.id}
+        initialUrl={wedding.spotify_playlist_url ?? ''}
+        initialDescription={wedding.spotify_description ?? ''}
+      />
     </div>
   )
 }

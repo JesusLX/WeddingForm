@@ -3,8 +3,17 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { getSpotifyEmbedUrl } from '@/lib/utils'
 
-export function SpotifyManager({ weddingId, initialUrl }: { weddingId: string; initialUrl: string }) {
+export function SpotifyManager({
+  weddingId,
+  initialUrl,
+  initialDescription,
+}: {
+  weddingId: string
+  initialUrl: string
+  initialDescription: string
+}) {
   const [url, setUrl] = useState(initialUrl)
+  const [description, setDescription] = useState(initialDescription)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const supabase = createClient()
@@ -15,7 +24,7 @@ export function SpotifyManager({ weddingId, initialUrl }: { weddingId: string; i
     setSaving(true)
     const { error } = await supabase
       .from('weddings')
-      .update({ spotify_playlist_url: url || null })
+      .update({ spotify_playlist_url: url || null, spotify_description: description || null })
       .eq('id', weddingId)
     setSaving(false)
     setMessage(error ? 'Error al guardar' : '¡Guardado!')
@@ -26,9 +35,9 @@ export function SpotifyManager({ weddingId, initialUrl }: { weddingId: string; i
     <div className="space-y-4">
       <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: 'white', border: '1px solid #F4D7D7' }}>
         <p className="text-sm" style={{ color: '#555' }}>
-          Pega el enlace de tu playlist de Spotify. Se mostrará en tu página de boda y los invitados
-          podrán sugerir canciones en el formulario.
+          Pega el enlace de tu playlist de Spotify y añade un texto descriptivo opcional.
         </p>
+
         <div className="flex gap-2">
           <input
             value={url}
@@ -37,6 +46,23 @@ export function SpotifyManager({ weddingId, initialUrl }: { weddingId: string; i
             className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-amber-300"
             style={{ borderColor: '#F4D7D7', color: '#2D2D2D' }}
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium mb-1 uppercase tracking-wide" style={{ color: '#555' }}>
+            Texto descriptivo (opcional)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ej: Esta es la playlist que nos acompañó durante este año juntos..."
+            rows={3}
+            className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-amber-300"
+            style={{ borderColor: '#F4D7D7', color: '#2D2D2D', resize: 'none' }}
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
           <button
             onClick={save}
             disabled={saving}
@@ -45,8 +71,9 @@ export function SpotifyManager({ weddingId, initialUrl }: { weddingId: string; i
           >
             Guardar
           </button>
+          {message && <p className="text-sm" style={{ color: '#4CAF50' }}>{message}</p>}
         </div>
-        {message && <p className="text-sm" style={{ color: '#4CAF50' }}>{message}</p>}
+
         {!embedUrl && url && (
           <p className="text-sm" style={{ color: '#EF5350' }}>
             URL de Spotify no válida. Asegúrate de copiar el enlace desde Spotify → Compartir.

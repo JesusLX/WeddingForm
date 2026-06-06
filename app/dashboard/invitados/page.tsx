@@ -15,11 +15,17 @@ export default async function InvitadosPage() {
 
   if (!wedding) redirect('/dashboard/configurar')
 
-  const { data: responses } = await supabase
-    .from('rsvp_responses')
-    .select('*, menu_option:menu_options(name, emoji)')
-    .eq('wedding_id', wedding.id)
-    .order('submitted_at', { ascending: false })
+  const [{ data: responses }, { data: menuOptions }] = await Promise.all([
+    supabase
+      .from('rsvp_responses')
+      .select('id, guest_name, attendance, adults_count, adult_menus, has_children, children_count, children_menus, bus_option, allergies, song_request, message, submitted_at')
+      .eq('wedding_id', wedding.id)
+      .order('submitted_at', { ascending: false }),
+    supabase
+      .from('menu_options')
+      .select('id, name, emoji')
+      .eq('wedding_id', wedding.id),
+  ])
 
   return (
     <div>
@@ -29,7 +35,7 @@ export default async function InvitadosPage() {
       >
         Confirmaciones recibidas
       </h1>
-      <GuestTable responses={responses ?? []} />
+      <GuestTable responses={responses ?? []} menuOptions={menuOptions ?? []} />
     </div>
   )
 }

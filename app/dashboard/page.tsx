@@ -54,7 +54,7 @@ export default async function DashboardPage() {
       .eq('attendance', false),
     supabase
       .from('rsvp_responses')
-      .select('adults_count, children_count, needs_bus')
+      .select('adults_count, children_count, bus_option')
       .eq('wedding_id', wedding.id)
       .eq('attendance', true),
     supabase
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
 
   const totalAdults = (aggregates ?? []).reduce((s, r) => s + (r.adults_count ?? 0), 0)
   const totalChildren = (aggregates ?? []).reduce((s, r) => s + (r.children_count ?? 0), 0)
-  const needsBus = (aggregates ?? []).filter((r) => r.needs_bus).length
+  const needsBus = (aggregates ?? []).filter((r) => r.bus_option && r.bus_option !== 'none').length
 
   const stats = [
     { label: 'Confirmados', value: confirmedCount ?? 0, color: '#4CAF50', emoji: '✅' },

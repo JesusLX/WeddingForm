@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-server'
 import { appendRsvpToSheet } from '@/lib/sheets'
-import type { MenuOption } from '@/lib/types'
 
 const schema = z.object({
   wedding_id: z.string().uuid(),
   guest_name: z.string().min(2).max(200),
   attendance: z.enum(['yes', 'no']),
   adults_count: z.coerce.number().min(1).max(20).optional(),
+  adult_menus: z.array(z.string()).optional(),
   has_children: z.enum(['yes', 'no']).optional(),
   children_count: z.coerce.number().min(0).max(20).optional(),
-  children_want_menu: z.boolean().optional(),
-  menu_option_id: z.string().optional(),
-  needs_bus: z.enum(['yes', 'no']).optional(),
+  children_menus: z.array(z.string().nullable()).optional(),
+  bus_option: z.enum(['none', 'outbound', 'return', 'both']).optional(),
   allergies: z.string().max(500).optional(),
   song_request: z.string().max(200).optional(),
   message: z.string().max(1000).optional(),
@@ -26,7 +25,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient()
 
-    // Verify wedding exists and is published
     const { data: wedding, error: weddingError } = await supabase
       .from('weddings')
       .select('id, google_sheet_id, rsvp_deadline, is_published')
@@ -38,30 +36,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Boda no encontrada' }, { status: 404 })
     }
 
-    // Check RSVP deadline
     if (wedding.rsvp_deadline && new Date(wedding.rsvp_deadline) < new Date()) {
-      return NextResponse.json(
-        { error: 'El plazo de confirmación ha finalizado' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'El plazo de confirmación ha finalizado' }, { status: 400 })
     }
 
     const attendance = data.attendance === 'yes'
+    const hasChildren = data.has_children === 'yes'
 
-    // Validate menu option belongs to this wedding
-    if (attendance && data.menu_option_id) {
-      const { data: menuCheck } = await supabase
+    // Validate all menu IDs belong to this wedding
+    const allMenuIds = [
+      ...(data.adult_menus ?? []),
+      ...(data.children_menus ?? []).filter(Boolean),
+    ].filter(Boolean) as string[]
+
+    if (allMenuIds.length > 0) {
+      const { data: menuChecks } = await supabase
         .from('menu_options')
         .select('id')
-        .eq('id', data.menu_option_id)
+        .in('id', allMenuIds)
         .eq('wedding_id', data.wedding_id)
-        .single()
-      if (!menuCheck) {
+      const validSet = new Set(menuChecks?.map(m => m.id) ?? [])
+      if (allMenuIds.some(id => !validSet.has(id))) {
         return NextResponse.json({ error: 'Opción de menú no válida' }, { status: 400 })
       }
     }
 
-    // Save to Supabase
     const { data: response, error: insertError } = await supabase
       .from('rsvp_responses')
       .insert({
@@ -69,11 +68,11 @@ export async function POST(req: NextRequest) {
         guest_name: data.guest_name,
         attendance,
         adults_count: attendance ? (data.adults_count ?? 1) : 0,
-        has_children: attendance ? data.has_children === 'yes' : false,
-        children_count: attendance && data.has_children === 'yes' ? (data.children_count ?? 0) : 0,
-        children_want_menu: attendance && data.has_children === 'yes' ? (data.children_want_menu ?? false) : false,
-        menu_option_id: attendance && data.menu_option_id ? data.menu_option_id : null,
-        needs_bus: attendance ? data.needs_bus === 'yes' : false,
+        adult_menus: attendance ? (data.adult_menus ?? []).filter(s => s !== '') : [],
+        has_children: attendance ? hasChildren : false,
+        children_count: attendance && hasChildren ? (data.children_count ?? 0) : 0,
+        children_menus: attendance && hasChildren ? (data.children_menus ?? []) : [],
+        bus_option: attendance ? (data.bus_option ?? 'none') : 'none',
         allergies: data.allergies || null,
         song_request: data.song_request || null,
         message: data.message || null,
@@ -86,7 +85,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error al guardar la respuesta' }, { status: 500 })
     }
 
-    // Try to link to expected_guests by name (fuzzy: case-insensitive)
     if (response) {
       await supabase
         .from('expected_guests')
@@ -98,30 +96,29 @@ export async function POST(req: NextRequest) {
 
     // Write to Google Sheets (non-blocking)
     if (wedding.google_sheet_id && response) {
-      let menuOption: MenuOption | null = null
-      if (data.menu_option_id) {
-        const { data: opt } = await supabase
+      let menuOptions: { id: string; name: string; emoji: string }[] = []
+      if (allMenuIds.length > 0) {
+        const { data: opts } = await supabase
           .from('menu_options')
-          .select('*')
-          .eq('id', data.menu_option_id)
+          .select('id, name, emoji')
+          .in('id', allMenuIds)
           .eq('wedding_id', data.wedding_id)
-          .single()
-        menuOption = opt
+        menuOptions = opts ?? []
       }
 
       appendRsvpToSheet(wedding.google_sheet_id, {
         guest_name: data.guest_name,
         attendance,
         adults_count: data.adults_count ?? 1,
-        has_children: data.has_children === 'yes',
+        adult_menus: data.adult_menus ?? [],
+        has_children: hasChildren,
         children_count: data.children_count ?? 0,
-        children_want_menu: data.children_want_menu ?? false,
-        menu_option_id: data.menu_option_id ?? '',
-        needs_bus: data.needs_bus === 'yes',
+        children_menus: data.children_menus ?? [],
+        bus_option: data.bus_option ?? 'none',
         allergies: data.allergies ?? '',
         song_request: data.song_request ?? '',
         message: data.message ?? '',
-      }, menuOption).catch(console.error)
+      }, menuOptions).catch(console.error)
     }
 
     return NextResponse.json({ ok: true })

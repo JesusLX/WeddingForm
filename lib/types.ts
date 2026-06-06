@@ -1,6 +1,7 @@
 export interface TimelineEvent {
   time: string
   label: string
+  icon?: string
 }
 
 export interface FaqItem {
@@ -36,6 +37,7 @@ export interface Wedding {
   bank_concept: string | null
   gifts_text: string | null
   spotify_playlist_url: string | null
+  spotify_description: string | null
   faq: FaqItem[]
   google_sheet_id: string | null
   bus_enabled: boolean
@@ -52,22 +54,30 @@ export interface MenuOption {
   sort_order: number
 }
 
+export type BusOption = 'none' | 'outbound' | 'return' | 'both'
+
+export const BUS_LABELS: Record<BusOption, string> = {
+  none: 'No',
+  outbound: 'Solo ida',
+  return: 'Solo vuelta',
+  both: 'Ida y vuelta',
+}
+
 export interface RsvpResponse {
   id: string
   wedding_id: string
   guest_name: string
   attendance: boolean
   adults_count: number
+  adult_menus: string[]
   has_children: boolean
   children_count: number
-  children_want_menu: boolean
-  menu_option_id: string | null
-  needs_bus: boolean
+  children_menus: (string | null)[]
+  bus_option: BusOption
   allergies: string | null
   song_request: string | null
   message: string | null
   submitted_at: string
-  menu_option?: MenuOption
 }
 
 export interface ExpectedGuest {
@@ -85,11 +95,11 @@ export interface RsvpFormData {
   guest_name: string
   attendance: boolean
   adults_count: number
+  adult_menus: string[]
   has_children: boolean
   children_count: number
-  children_want_menu: boolean
-  menu_option_id: string
-  needs_bus: boolean
+  children_menus: (string | null)[]
+  bus_option: BusOption
   allergies: string
   song_request: string
   message: string

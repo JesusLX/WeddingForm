@@ -13,39 +13,59 @@ export function GalleryManager({
 }) {
   const [images, setImages] = useState<string[]>(initialImages)
   const [cover, setCover] = useState(initialCover)
-  const [uploading, setUploading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingGallery, setUploadingGallery] = useState(false)
+  const [coverMsg, setCoverMsg] = useState('')
+  const [galleryMsg, setGalleryMsg] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const coverRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
-  async function uploadFiles(files: FileList, isCover = false) {
-    setUploading(true)
-    const uploadedUrls: string[] = []
+  function showMsg(setter: (m: string) => void, msg: string) {
+    setter(msg)
+    setTimeout(() => setter(''), 3000)
+  }
 
+  async function uploadCover(files: FileList) {
+    const file = files[0]
+    if (!file) return
+    setUploadingCover(true)
+    const ext = file.name.split('.').pop()
+    const path = `${weddingId}/cover-${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('wedding-photos').upload(path, file, { upsert: true })
+    if (error) {
+      setUploadingCover(false)
+      showMsg(setCoverMsg, `Error al subir: ${error.message}`)
+      return
+    }
+    const { data } = supabase.storage.from('wedding-photos').getPublicUrl(path)
+    await supabase.from('weddings').update({ cover_image_url: data.publicUrl }).eq('id', weddingId)
+    setCover(data.publicUrl)
+    setUploadingCover(false)
+    showMsg(setCoverMsg, '¡Foto de portada guardada!')
+  }
+
+  async function uploadGallery(files: FileList) {
+    setUploadingGallery(true)
+    const uploadedUrls: string[] = []
     for (const file of Array.from(files)) {
       const ext = file.name.split('.').pop()
       const path = `${weddingId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage.from('wedding-photos').upload(path, file)
-      if (error) continue
-
+      if (error) {
+        showMsg(setGalleryMsg, `Error al subir ${file.name}: ${error.message}`)
+        continue
+      }
       const { data } = supabase.storage.from('wedding-photos').getPublicUrl(path)
       uploadedUrls.push(data.publicUrl)
     }
-
-    if (isCover && uploadedUrls[0]) {
-      const newCover = uploadedUrls[0]
-      await supabase.from('weddings').update({ cover_image_url: newCover }).eq('id', weddingId)
-      setCover(newCover)
-    } else if (uploadedUrls.length > 0) {
+    if (uploadedUrls.length > 0) {
       const newImages = [...images, ...uploadedUrls]
       await supabase.from('weddings').update({ gallery_image_urls: newImages }).eq('id', weddingId)
       setImages(newImages)
+      showMsg(setGalleryMsg, `${uploadedUrls.length} foto${uploadedUrls.length > 1 ? 's' : ''} añadida${uploadedUrls.length > 1 ? 's' : ''}`)
     }
-
-    setUploading(false)
-    setMessage('¡Fotos subidas!')
-    setTimeout(() => setMessage(''), 2000)
+    setUploadingGallery(false)
   }
 
   async function removeImage(url: string) {
@@ -59,29 +79,49 @@ export function GalleryManager({
     setCover('')
   }
 
+  const msgStyle = (msg: string) => ({
+    color: msg.startsWith('Error') ? '#EF5350' : '#4CAF50',
+  })
+
   return (
     <div className="space-y-6">
       {/* Cover photo */}
       <div className="rounded-2xl p-5 space-y-3" style={{ backgroundColor: 'white', border: '1px solid #F4D7D7' }}>
         <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Foto de portada</h2>
         {cover ? (
-          <div className="relative rounded-xl overflow-hidden" style={{ maxHeight: 220 }}>
-            <img src={cover} className="w-full h-full object-cover" alt="Portada" />
-            <button
-              onClick={removeCover}
-              className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm"
-              style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: 'white' }}
-            >
-              ✕
-            </button>
+          <div className="relative rounded-xl" style={{ height: 200 }}>
+            <img
+              src={cover}
+              className="w-full h-full object-cover rounded-xl"
+              alt="Portada"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            <div className="absolute top-2 right-2 flex gap-1">
+              <button
+                onClick={() => coverRef.current?.click()}
+                disabled={uploadingCover}
+                className="px-3 py-1.5 rounded-full text-xs font-medium disabled:opacity-50"
+                style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: 'white' }}
+              >
+                {uploadingCover ? '...' : 'Cambiar'}
+              </button>
+              <button
+                onClick={removeCover}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-sm"
+                style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: 'white' }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
         ) : (
           <button
             onClick={() => coverRef.current?.click()}
-            className="w-full py-8 rounded-xl border-2 border-dashed text-sm transition-colors hover:border-amber-400"
+            disabled={uploadingCover}
+            className="w-full py-8 rounded-xl border-2 border-dashed text-sm transition-colors hover:border-amber-400 disabled:opacity-50"
             style={{ borderColor: '#F4D7D7', color: '#888' }}
           >
-            + Subir foto de portada
+            {uploadingCover ? 'Subiendo...' : '+ Subir foto de portada'}
           </button>
         )}
         <input
@@ -89,8 +129,12 @@ export function GalleryManager({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(e) => e.target.files && uploadFiles(e.target.files, true)}
+          onChange={(e) => e.target.files && uploadCover(e.target.files)}
         />
+        {coverMsg && <p className="text-sm" style={msgStyle(coverMsg)}>{coverMsg}</p>}
+        <p className="text-xs" style={{ color: '#999' }}>
+          Recomendado: imagen horizontal (16:9), mínimo 1200×630 px.
+        </p>
       </div>
 
       {/* Gallery */}
@@ -101,11 +145,11 @@ export function GalleryManager({
           </h2>
           <button
             onClick={() => fileRef.current?.click()}
-            disabled={uploading}
+            disabled={uploadingGallery}
             className="px-4 py-1.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
             style={{ backgroundColor: '#C9A84C' }}
           >
-            {uploading ? 'Subiendo...' : '+ Añadir fotos'}
+            {uploadingGallery ? 'Subiendo...' : '+ Añadir fotos'}
           </button>
         </div>
 
@@ -115,10 +159,10 @@ export function GalleryManager({
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+          onChange={(e) => e.target.files && uploadGallery(e.target.files)}
         />
 
-        {message && <p className="text-sm" style={{ color: '#4CAF50' }}>{message}</p>}
+        {galleryMsg && <p className="text-sm" style={msgStyle(galleryMsg)}>{galleryMsg}</p>}
 
         {images.length === 0 ? (
           <button

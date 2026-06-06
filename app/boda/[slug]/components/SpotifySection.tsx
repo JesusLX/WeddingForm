@@ -22,6 +22,12 @@ export function SpotifySection({ wedding }: { wedding: Wedding }) {
           </h2>
           <div className="h-px w-16 mx-auto mb-10" style={{ backgroundColor: '#C9A84C' }} />
 
+          {wedding.spotify_description && (
+            <p className="text-sm mb-8 leading-relaxed" style={{ color: '#555555' }}>
+              {wedding.spotify_description}
+            </p>
+          )}
+
           <iframe
             src={embedUrl}
             width="100%"
