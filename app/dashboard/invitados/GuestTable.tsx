@@ -96,6 +96,16 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
 
   const allRows = flattenResponses(items)
 
+  // Names that appear more than once across all rows (case-insensitive)
+  const nameCounts = new Map<string, number>()
+  allRows.forEach(row => {
+    const key = row.name.trim().toLowerCase()
+    nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1)
+  })
+  const duplicateNames = new Set(
+    [...nameCounts.entries()].filter(([, count]) => count > 1).map(([name]) => name)
+  )
+
   const filtered = allRows.filter(row => {
     const matchesTab = tab === 'all' || (tab === 'confirmed' ? row.attendance : !row.attendance)
     const matchesSearch = row.name.toLowerCase().includes(search.toLowerCase())
@@ -234,11 +244,14 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
                 {filtered.map((row, i) => {
                   const isNewGroup = row.rsvpId !== prevRsvpId
                   prevRsvpId = row.rsvpId
+                  const isDuplicate = duplicateNames.has(row.name.trim().toLowerCase())
                   return (
                     <tr key={row.personKey}
+                      title={isDuplicate ? '⚠️ Este nombre aparece más de una vez' : undefined}
                       style={{
-                        backgroundColor: i % 2 === 0 ? 'white' : '#FAFAFA',
+                        backgroundColor: isDuplicate ? '#FFFBEB' : i % 2 === 0 ? 'white' : '#FAFAFA',
                         borderTop: isNewGroup && i > 0 ? '2px solid #F4D7D7' : '1px solid #F4D7D799',
+                        borderLeft: isDuplicate ? '3px solid #F59E0B' : '3px solid transparent',
                       }}>
                       {/* Name */}
                       <td className="px-4 py-2.5 font-medium" style={{ color: '#2D2D2D', minWidth: 160 }}>
@@ -246,6 +259,9 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
                           {!row.isGroupFirst && <span className="text-gray-300 select-none">└</span>}
                           {row.isChild && <span title="Niño">👶</span>}
                           <span>{row.name}</span>
+                          {isDuplicate && (
+                            <span title="Nombre duplicado — posible doble registro" className="text-xs flex-shrink-0">⚠️</span>
+                          )}
                           {row.isGroupFirst && row.message && (
                             <span title={row.message} className="cursor-help text-xs flex-shrink-0" style={{ color: '#C9A84C' }}>💌</span>
                           )}
