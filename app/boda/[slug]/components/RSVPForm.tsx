@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Wedding, MenuOption, BusOption } from '@/lib/types'
+import { HoneypotField } from '@/components/HoneypotField'
 
 const schema = z.object({
   guest_name: z.string().min(2, 'Por favor introduce tu nombre'),
@@ -65,6 +66,8 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
   const [childrenData, setChildrenData] = useState<{ wantsMenu: boolean; menuId: string }[]>([])
   const [busIda, setBusIda] = useState(false)
   const [busVuelta, setBusVuelta] = useState(false)
+  const [hp, setHp] = useState('')
+  const loadedAt = useRef(Date.now())
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -97,6 +100,11 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
   }, [childrenCount])
 
   async function onSubmit(values: FormValues) {
+    if (hp) { setStatus('success'); return }
+    if (Date.now() - loadedAt.current < 2000) {
+      setStatus('error')
+      return
+    }
     setStatus('submitting')
     try {
       const res = await fetch('/api/rsvp', {
@@ -110,6 +118,8 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
             ? childrenData.map(c => c.wantsMenu ? (c.menuId || null) : null)
             : [],
           bus_option: isAttending ? busOptionFromCheckboxes(busIda, busVuelta) : 'none',
+          hp_website: hp,
+          submitted_ms: Date.now() - loadedAt.current,
         }),
       })
       if (!res.ok) throw new Error()
@@ -166,6 +176,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <HoneypotField onChange={setHp} />
       {/* Deadline banner */}
       {wedding.rsvp_deadline && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style={{ backgroundColor: '#FBF5E6', border: '1px solid #C9A84C' }}>

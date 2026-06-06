@@ -16,12 +16,19 @@ const schema = z.object({
   allergies: z.string().max(500).optional(),
   song_request: z.string().max(200).optional(),
   message: z.string().max(1000).optional(),
+  hp_website: z.string().optional(),
+  submitted_ms: z.number().optional(),
 })
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = schema.parse(body)
+
+    // Anti-bot: honeypot filled or submitted too fast → pretend success
+    if (data.hp_website || (data.submitted_ms !== undefined && data.submitted_ms < 1500)) {
+      return NextResponse.json({ ok: true })
+    }
 
     const supabase = createAdminClient()
 

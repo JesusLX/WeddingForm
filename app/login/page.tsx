@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { HoneypotField } from '@/components/HoneypotField'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -10,11 +11,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [hp, setHp] = useState('')
+  const loadedAt = useRef(Date.now())
   const router = useRouter()
   const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (hp) return
+    if (Date.now() - loadedAt.current < 1500) {
+      setError('Por favor inténtalo de nuevo.')
+      return
+    }
     setLoading(true)
     setError('')
     setMessage('')
@@ -62,6 +70,7 @@ export default function LoginPage() {
           className="rounded-2xl p-6 space-y-4 shadow-sm"
           style={{ backgroundColor: 'white', border: '1px solid #F4D7D7' }}
         >
+          <HoneypotField onChange={setHp} />
           <div>
             <label className="block text-sm mb-1" style={{ color: '#555555' }}>Email</label>
             <input
