@@ -32,11 +32,12 @@ export function SpotifySection({ wedding }: { wedding: Wedding }) {
           <iframe
             src={embedUrl}
             width="100%"
-            height="380"
+            height="352"
             frameBorder="0"
+            allowFullScreen
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
-            className="rounded-2xl shadow-sm"
+            style={{ borderRadius: 12 }}
             title="Playlist de la boda"
           />
 

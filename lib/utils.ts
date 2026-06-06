@@ -64,7 +64,7 @@ export function getSpotifyEmbedUrl(playlistUrl: string): string | null {
     const url = new URL(playlistUrl)
     if (!url.hostname.includes('spotify.com')) return null
     const path = url.pathname // e.g. /playlist/37i9dQZF1DXcBWIGoYBM5M
-    return `https://open.spotify.com/embed${path}?utm_source=generator&theme=0`
+    return `https://open.spotify.com/embed${path}?utm_source=generator`
   } catch {
     return null
   }
