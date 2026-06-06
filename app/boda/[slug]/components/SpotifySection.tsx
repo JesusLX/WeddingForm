@@ -41,9 +41,13 @@ export function SpotifySection({ wedding }: { wedding: Wedding }) {
 
           <p className="mt-6 text-sm" style={{ color: '#555555' }}>
             ¿Se te ocurre una canción que no puede faltar?{' '}
-            <span className="font-medium" style={{ color: '#C9A84C' }}>
+            <button
+              onClick={() => document.getElementById('rsvp')?.scrollIntoView({ behavior: 'smooth' })}
+              className="font-medium underline-offset-2 hover:underline cursor-pointer"
+              style={{ color: '#C9A84C' }}
+            >
               Dínoslo en la confirmación ↓
-            </span>
+            </button>
           </p>
         </ScrollReveal>
       </div>
