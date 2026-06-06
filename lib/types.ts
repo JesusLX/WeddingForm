@@ -93,6 +93,30 @@ export interface ExpectedGuest {
   rsvp_response?: RsvpResponse
 }
 
+export interface SeatingGuest {
+  key: string
+  name: string
+  isChild: boolean
+  rsvpId: string
+}
+
+export type RelationshipType = 'TOGETHER' | 'KNOWS' | 'APART'
+
+export interface GuestRelationship {
+  id: string
+  wedding_id: string
+  guest_a_key: string
+  guest_b_key: string
+  type: RelationshipType
+}
+
+export interface TableAssignment {
+  id: string
+  wedding_id: string
+  table_number: number
+  guest_key: string
+}
+
 export interface RsvpFormData {
   guest_name: string
   attendance: boolean

@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/spotify', label: 'Spotify', icon: '🎵' },
   { href: '/dashboard/lista', label: 'Lista invitados', icon: '📋' },
   { href: '/dashboard/invitados', label: 'Confirmaciones', icon: '✅' },
+  { href: '/dashboard/mesas', label: 'Mesas', icon: '🪑' },
   { href: '/dashboard/sheets', label: 'Google Sheets', icon: '📄' },
 ]
 

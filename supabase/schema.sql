@@ -130,6 +130,44 @@ CREATE POLICY "owner_all" ON expected_guests FOR ALL
   USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
 
 -- ============================================================
+-- SEATING ARRANGEMENT
+-- ============================================================
+
+-- Table config columns on weddings
+ALTER TABLE weddings
+  ADD COLUMN IF NOT EXISTS tables_count INT DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS tables_min_guests INT DEFAULT 8,
+  ADD COLUMN IF NOT EXISTS tables_max_guests INT DEFAULT 10;
+
+-- Relationships between individual guests
+CREATE TABLE IF NOT EXISTS guest_relationships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  guest_a_key TEXT NOT NULL,
+  guest_b_key TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('TOGETHER', 'KNOWS', 'APART')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(wedding_id, guest_a_key, guest_b_key)
+);
+
+-- Computed seat assignments (overwritten on each auto-assign)
+CREATE TABLE IF NOT EXISTS table_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  table_number INT NOT NULL,
+  guest_key TEXT NOT NULL,
+  UNIQUE(wedding_id, guest_key)
+);
+
+ALTER TABLE guest_relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE table_assignments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "owner_all" ON guest_relationships FOR ALL
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+CREATE POLICY "owner_all" ON table_assignments FOR ALL
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+
+-- ============================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_updated_at()
