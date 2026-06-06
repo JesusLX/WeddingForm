@@ -98,12 +98,6 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
     })
   }, [adultsCount])
 
-  // Pre-fill first adult name with submitter name
-  useEffect(() => {
-    if (adultsCount > 1 && guestName) {
-      setAdultNames(prev => prev[0] ? prev : prev.map((n, i) => i === 0 ? guestName : n))
-    }
-  }, [guestName, adultsCount])
 
   useEffect(() => {
     setChildrenData(prev => {
@@ -127,7 +121,9 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
         body: JSON.stringify({
           ...values,
           wedding_id: wedding.id,
-          adult_names: isAttending && adultsCount > 1 ? adultNames : [],
+          adult_names: isAttending && adultsCount > 1
+            ? [values.guest_name, ...adultNames.slice(1).map(n => n.trim()).filter(Boolean)]
+            : [],
           adult_menus: isAttending ? adultMenus : [],
           children_names: isAttending && bringsChildren ? childrenData.map(c => c.name) : [],
           children_menus: isAttending && bringsChildren
@@ -243,15 +239,17 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
               {Array.from({ length: adultsCount }, (_, i) => (
                 <div key={i} className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F9EEE8' }}>
                   <p className="text-sm font-semibold" style={{ color: '#2D2D2D' }}>
-                    Adulto {i + 1}{i === 0 ? ' (tú)' : ''}
+                    {i === 0 ? `Tú · ${guestName || 'Adulto 1'}` : `Adulto ${i + 1}`}
                   </p>
-                  <input
-                    value={adultNames[i] ?? ''}
-                    onChange={e => setAdultNames(prev => prev.map((n, idx) => idx === i ? e.target.value : n))}
-                    placeholder="Nombre completo"
-                    className={inputClass}
-                    style={inputStyle}
-                  />
+                  {i > 0 && (
+                    <input
+                      value={adultNames[i] ?? ''}
+                      onChange={e => setAdultNames(prev => prev.map((n, idx) => idx === i ? e.target.value : n))}
+                      placeholder="Nombre completo"
+                      className={inputClass}
+                      style={inputStyle}
+                    />
+                  )}
                   {menuOptions.length > 0 && (
                     <MenuGrid
                       selectedId={adultMenus[i] ?? ''}
