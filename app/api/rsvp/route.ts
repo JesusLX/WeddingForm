@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase-server'
 import { appendRsvpToSheet } from '@/lib/sheets'
 import type { MenuOption } from '@/lib/types'
 

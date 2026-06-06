@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import type { Wedding, MenuOption } from '@/lib/types'
 import { HeroSection } from './components/HeroSection'
 import { OurStorySection } from './components/OurStorySection'
