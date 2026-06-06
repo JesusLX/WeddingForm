@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { createClient } from '@/lib/supabase'
 const busLabels: Record<string, string> = {
   none: '—',
   outbound: 'Solo ida 🚌',
@@ -48,15 +49,26 @@ export function GuestTable({
 }) {
   const [tab, setTab] = useState<'all' | 'confirmed' | 'declined'>('all')
   const [search, setSearch] = useState('')
+  const [items, setItems] = useState(responses)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
-  const filtered = responses.filter((r) => {
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`¿Eliminar la confirmación de "${name}"? El invitado podrá volver a enviar el formulario.`)) return
+    setDeleting(id)
+    const supabase = createClient()
+    await supabase.from('rsvp_responses').delete().eq('id', id)
+    setItems(prev => prev.filter(r => r.id !== id))
+    setDeleting(null)
+  }
+
+  const filtered = items.filter((r) => {
     const matchesTab = tab === 'all' || (tab === 'confirmed' ? r.attendance : !r.attendance)
     const matchesSearch = r.guest_name.toLowerCase().includes(search.toLowerCase())
     return matchesTab && matchesSearch
   })
 
-  const confirmed = responses.filter((r) => r.attendance).length
-  const declined = responses.filter((r) => !r.attendance).length
+  const confirmed = items.filter((r) => r.attendance).length
+  const declined = items.filter((r) => !r.attendance).length
 
   function exportCSV() {
     const headers = [
@@ -64,7 +76,7 @@ export function GuestTable({
       'Niños', 'Nombres niños', 'Menú niños',
       'Autobús', 'Alergias', 'Canción', 'Mensaje', 'Fecha',
     ]
-    const rows = responses.map((r) => [
+    const rows = items.map((r) => [
       r.guest_name,
       r.attendance ? 'Sí' : 'No',
       r.adults_count,
@@ -141,7 +153,7 @@ export function GuestTable({
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: '#F9EEE8' }}>
-                  {['Nombre', 'Asiste', 'Adultos', 'Menús', 'Niños', 'Autobús', 'Alergias', 'Canción', 'Fecha'].map((h) => (
+                  {['Nombre', 'Asiste', 'Adultos', 'Menús', 'Niños', 'Autobús', 'Alergias', 'Canción', 'Fecha', ''].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wide" style={{ color: '#555555' }}>
                       {h}
                     </th>
@@ -224,6 +236,17 @@ export function GuestTable({
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap" style={{ color: '#888', fontSize: 11 }}>
                       {format(new Date(r.submitted_at), 'dd/MM/yy HH:mm')}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDelete(r.id, r.guest_name)}
+                        disabled={deleting === r.id}
+                        title="Eliminar confirmación"
+                        className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-40"
+                        style={{ color: '#C62828', backgroundColor: '#FFEBEE' }}
+                      >
+                        {deleting === r.id ? '...' : '🗑'}
+                      </button>
                     </td>
                   </tr>
                 ))}
