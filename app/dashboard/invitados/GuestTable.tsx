@@ -1,20 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase'
+
 const busLabels: Record<string, string> = {
-  none: '—',
-  outbound: 'Solo ida 🚌',
-  return: 'Solo vuelta 🚌',
-  both: 'Ida y vuelta 🔄',
+  none: '—', outbound: 'Solo ida 🚌', return: 'Solo vuelta 🚌', both: 'Ida y vuelta 🔄',
 }
 
-interface MenuRef {
-  id: string
-  name: string
-  emoji: string
-}
+interface MenuRef { id: string; name: string; emoji: string }
 
 interface Response {
   id: string
@@ -34,119 +27,189 @@ interface Response {
   submitted_at: string
 }
 
+interface PersonRow {
+  rsvpId: string
+  personKey: string
+  name: string
+  isChild: boolean
+  personIndex: number
+  menu: string | null
+  // only on first row of group
+  isGroupFirst: boolean
+  groupSize: number
+  attendance: boolean
+  busOption: string
+  allergies: string | null
+  songRequest: string | null
+  message: string | null
+  submittedAt: string
+}
+
 function menuLabel(id: string | null, opts: MenuRef[]): string {
   if (!id) return '—'
   const opt = opts.find(o => o.id === id)
   return opt ? `${opt.emoji} ${opt.name}` : '?'
 }
 
-export function GuestTable({
-  responses,
-  menuOptions,
-}: {
-  responses: Response[]
-  menuOptions: MenuRef[]
-}) {
+function flattenResponses(responses: Response[]): PersonRow[] {
+  const rows: PersonRow[] = []
+  for (const r of responses) {
+    const adultNames = r.adult_names?.length ? r.adult_names : [r.guest_name]
+    const childNames = r.children_names ?? []
+    const groupSize = r.adults_count + (r.has_children ? r.children_count : 0)
+    const shared = {
+      rsvpId: r.id, attendance: r.attendance, busOption: r.bus_option,
+      allergies: r.allergies, songRequest: r.song_request, message: r.message,
+      submittedAt: r.submitted_at, groupSize,
+    }
+    for (let i = 0; i < r.adults_count; i++) {
+      rows.push({
+        ...shared,
+        personKey: `${r.id}_adult_${i}`,
+        name: adultNames[i] || (i === 0 ? r.guest_name : `Adulto ${i + 1}`),
+        isChild: false, personIndex: i,
+        menu: r.adult_menus?.[i] ?? null,
+        isGroupFirst: i === 0,
+      })
+    }
+    if (r.has_children) {
+      for (let i = 0; i < r.children_count; i++) {
+        rows.push({
+          ...shared,
+          personKey: `${r.id}_child_${i}`,
+          name: childNames[i] || `Niño ${i + 1}`,
+          isChild: true, personIndex: i,
+          menu: r.children_menus?.[i] ?? null,
+          isGroupFirst: false,
+        })
+      }
+    }
+  }
+  return rows
+}
+
+export function GuestTable({ responses, menuOptions }: { responses: Response[]; menuOptions: MenuRef[] }) {
   const [tab, setTab] = useState<'all' | 'confirmed' | 'declined'>('all')
   const [search, setSearch] = useState('')
-  const [items, setItems] = useState(responses)
+  const [items, setItems] = useState<Response[]>(responses)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`¿Eliminar la confirmación de "${name}"? El invitado podrá volver a enviar el formulario.`)) return
-    setDeleting(id)
-    const supabase = createClient()
-    const { error } = await supabase.from('rsvp_responses').delete().eq('id', id)
-    if (error) {
-      alert(`Error al eliminar: ${error.message}`)
-      setDeleting(null)
-      return
-    }
-    await Promise.all([
-      supabase.from('table_assignments').delete().like('guest_key', `${id}_%`),
-      supabase.from('guest_relationships').delete().or(`guest_a_key.like.${id}_%,guest_b_key.like.${id}_%`),
-    ])
-    setItems(prev => prev.filter(r => r.id !== id))
-    setDeleting(null)
-  }
+  const allRows = flattenResponses(items)
 
-  const filtered = items.filter((r) => {
-    const matchesTab = tab === 'all' || (tab === 'confirmed' ? r.attendance : !r.attendance)
-    const matchesSearch = r.guest_name.toLowerCase().includes(search.toLowerCase())
+  const filtered = allRows.filter(row => {
+    const matchesTab = tab === 'all' || (tab === 'confirmed' ? row.attendance : !row.attendance)
+    const matchesSearch = row.name.toLowerCase().includes(search.toLowerCase())
     return matchesTab && matchesSearch
   })
 
-  const confirmed = items.filter((r) => r.attendance).length
-  const declined = items.filter((r) => !r.attendance).length
+  const confirmedCount = items.filter(r => r.attendance).length
+  const declinedCount = items.filter(r => !r.attendance).length
+  const totalPeople = items.filter(r => r.attendance)
+    .reduce((sum, r) => sum + r.adults_count + (r.has_children ? r.children_count : 0), 0)
+
+  async function handleDeletePerson(row: PersonRow) {
+    const resp = items.find(r => r.id === row.rsvpId)!
+    const label = row.isChild ? `al niño "${row.name}"` : `a "${row.name}"`
+    if (!confirm(`¿Eliminar ${label}? ${row.groupSize > 1 ? 'El resto del grupo seguirá confirmado.' : 'El invitado podrá volver a enviar el formulario.'}`)) return
+
+    setDeleting(row.personKey)
+    const supabase = createClient()
+
+    if (row.groupSize <= 1) {
+      // Delete whole RSVP
+      const { error } = await supabase.from('rsvp_responses').delete().eq('id', row.rsvpId)
+      if (error) { alert(`Error: ${error.message}`); setDeleting(null); return }
+      await Promise.all([
+        supabase.from('table_assignments').delete().like('guest_key', `${row.rsvpId}_%`),
+        supabase.from('guest_relationships').delete().or(`guest_a_key.like.${row.rsvpId}_%,guest_b_key.like.${row.rsvpId}_%`),
+      ])
+      setItems(prev => prev.filter(r => r.id !== row.rsvpId))
+    } else if (!row.isChild) {
+      const newNames = (resp.adult_names ?? []).filter((_, i) => i !== row.personIndex)
+      const newMenus = (resp.adult_menus ?? []).filter((_, i) => i !== row.personIndex)
+      const newCount = resp.adults_count - 1
+      const { error } = await supabase.from('rsvp_responses').update({
+        adults_count: newCount, adult_names: newNames, adult_menus: newMenus,
+      }).eq('id', row.rsvpId)
+      if (error) { alert(`Error: ${error.message}`); setDeleting(null); return }
+      await Promise.all([
+        supabase.from('table_assignments').delete().eq('guest_key', row.personKey),
+        supabase.from('guest_relationships').delete().or(`guest_a_key.eq.${row.personKey},guest_b_key.eq.${row.personKey}`),
+      ])
+      setItems(prev => prev.map(r => r.id !== row.rsvpId ? r : {
+        ...r, adults_count: newCount, adult_names: newNames, adult_menus: newMenus,
+      }))
+    } else {
+      const newNames = (resp.children_names ?? []).filter((_, i) => i !== row.personIndex)
+      const newMenus = (resp.children_menus ?? []).filter((_, i) => i !== row.personIndex)
+      const newCount = resp.children_count - 1
+      const { error } = await supabase.from('rsvp_responses').update({
+        children_count: newCount, has_children: newCount > 0,
+        children_names: newNames, children_menus: newMenus,
+      }).eq('id', row.rsvpId)
+      if (error) { alert(`Error: ${error.message}`); setDeleting(null); return }
+      await Promise.all([
+        supabase.from('table_assignments').delete().eq('guest_key', row.personKey),
+        supabase.from('guest_relationships').delete().or(`guest_a_key.eq.${row.personKey},guest_b_key.eq.${row.personKey}`),
+      ])
+      setItems(prev => prev.map(r => r.id !== row.rsvpId ? r : {
+        ...r, children_count: newCount, has_children: newCount > 0,
+        children_names: newNames, children_menus: newMenus,
+      }))
+    }
+    setDeleting(null)
+  }
 
   function exportCSV() {
-    const headers = [
-      'Nombre', 'Asiste', 'Adultos', 'Nombres adultos', 'Menú adultos',
-      'Niños', 'Nombres niños', 'Menú niños',
-      'Autobús', 'Alergias', 'Canción', 'Mensaje', 'Fecha',
-    ]
-    const rows = items.map((r) => [
-      r.guest_name,
-      r.attendance ? 'Sí' : 'No',
-      r.adults_count,
-      (r.adult_names ?? []).join('; ') || r.guest_name,
-      (r.adult_menus ?? []).map((id, i) => `A${i + 1}: ${menuLabel(id, menuOptions)}`).join('; '),
-      r.children_count,
-      (r.children_names ?? []).join('; '),
-      (r.children_menus ?? []).map((id, i) => `N${i + 1}: ${menuLabel(id, menuOptions)}`).join('; '),
-      busLabels[r.bus_option] ?? r.bus_option,
-      r.allergies ?? '',
-      r.song_request ?? '',
-      r.message ?? '',
-      format(new Date(r.submitted_at), 'dd/MM/yyyy HH:mm'),
+    const headers = ['Nombre', 'Asiste', 'Tipo', 'Menú', 'Autobús', 'Alergias', 'Canción', 'Mensaje', 'Fecha']
+    const rows = allRows.map(row => [
+      row.name,
+      row.attendance ? 'Sí' : 'No',
+      row.isChild ? 'Niño' : 'Adulto',
+      menuLabel(row.menu, menuOptions),
+      row.isGroupFirst ? (busLabels[row.busOption] ?? row.busOption) : '',
+      row.isGroupFirst ? (row.allergies ?? '') : '',
+      row.isGroupFirst ? (row.songRequest ?? '') : '',
+      row.isGroupFirst ? (row.message ?? '') : '',
+      row.isGroupFirst ? format(new Date(row.submittedAt), 'dd/MM/yyyy HH:mm') : '',
     ])
-    const csv = [headers, ...rows].map((row) => row.map((c) => `"${c}"`).join(',')).join('\n')
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
+    a.href = URL.createObjectURL(blob)
     a.download = 'confirmaciones.csv'
     a.click()
   }
 
   const tabs = [
-    { key: 'all', label: `Todos (${responses.length})` },
-    { key: 'confirmed', label: `Confirmados (${confirmed})` },
-    { key: 'declined', label: `No asisten (${declined})` },
+    { key: 'all', label: `Todos (${items.length} envíos · ${totalPeople} personas)` },
+    { key: 'confirmed', label: `Confirmados (${confirmedCount})` },
+    { key: 'declined', label: `No asisten (${declinedCount})` },
   ]
+
+  // Track group boundaries for visual separation
+  let prevRsvpId = ''
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key as any)}
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key as any)}
               className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                backgroundColor: tab === t.key ? '#C9A84C' : 'white',
-                color: tab === t.key ? 'white' : '#555555',
-                border: '1px solid #F4D7D7',
-              }}
-            >
+              style={{ backgroundColor: tab === t.key ? '#C9A84C' : 'white', color: tab === t.key ? 'white' : '#555555', border: '1px solid #F4D7D7' }}>
               {t.label}
             </button>
           ))}
         </div>
         <div className="flex gap-2">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre..."
             className="px-3 py-1.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-amber-300"
-            style={{ borderColor: '#F4D7D7', minWidth: 180 }}
-          />
-          <button
-            onClick={exportCSV}
-            className="px-4 py-1.5 rounded-xl text-sm font-medium flex items-center gap-1 transition-opacity hover:opacity-80"
-            style={{ backgroundColor: '#2D2D2D', color: 'white' }}
-          >
+            style={{ borderColor: '#F4D7D7', minWidth: 180 }} />
+          <button onClick={exportCSV}
+            className="px-4 py-1.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ backgroundColor: '#2D2D2D', color: 'white' }}>
             ↓ CSV
           </button>
         </div>
@@ -162,103 +225,75 @@ export function GuestTable({
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: '#F9EEE8' }}>
-                  {['Nombre', 'Asiste', 'Adultos', 'Menús', 'Niños', 'Autobús', 'Alergias', 'Canción', 'Fecha', ''].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wide" style={{ color: '#555555' }}>
-                      {h}
-                    </th>
+                  {['Nombre', 'Asiste', 'Menú', 'Autobús', 'Alergias', 'Canción', 'Fecha', ''].map(h => (
+                    <th key={h} className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wide" style={{ color: '#555555' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r, i) => (
-                  <tr
-                    key={r.id}
-                    style={{ backgroundColor: i % 2 === 0 ? 'white' : '#FAFAFA', borderTop: '1px solid #F4D7D7' }}
-                  >
-                    <td className="px-4 py-3 font-medium" style={{ color: '#2D2D2D', minWidth: 160 }}>
-                      <div className="flex items-start gap-1">
-                        <div>
-                          <span>{r.guest_name}</span>
-                          {(r.adult_names ?? []).filter(Boolean).length > 0 && (
-                            <div className="mt-0.5 space-y-0.5">
-                              {(r.adult_names ?? []).filter(Boolean).map((n, idx) => (
-                                <div key={idx} className="text-xs" style={{ color: '#888' }}>+ {n}</div>
-                              ))}
-                            </div>
-                          )}
-                          {(r.children_names ?? []).filter(Boolean).length > 0 && (
-                            <div className="mt-0.5 space-y-0.5">
-                              {(r.children_names ?? []).filter(Boolean).map((n, idx) => (
-                                <div key={idx} className="text-xs" style={{ color: '#888' }}>👶 {n}</div>
-                              ))}
-                            </div>
+                {filtered.map((row, i) => {
+                  const isNewGroup = row.rsvpId !== prevRsvpId
+                  prevRsvpId = row.rsvpId
+                  return (
+                    <tr key={row.personKey}
+                      style={{
+                        backgroundColor: i % 2 === 0 ? 'white' : '#FAFAFA',
+                        borderTop: isNewGroup && i > 0 ? '2px solid #F4D7D7' : '1px solid #F4D7D799',
+                      }}>
+                      {/* Name */}
+                      <td className="px-4 py-2.5 font-medium" style={{ color: '#2D2D2D', minWidth: 160 }}>
+                        <div className="flex items-center gap-1.5">
+                          {!row.isGroupFirst && <span className="text-gray-300 select-none">└</span>}
+                          {row.isChild && <span title="Niño">👶</span>}
+                          <span>{row.name}</span>
+                          {row.isGroupFirst && row.message && (
+                            <span title={row.message} className="cursor-help text-xs flex-shrink-0" style={{ color: '#C9A84C' }}>💌</span>
                           )}
                         </div>
-                        {r.message && (
-                          <span title={r.message} className="cursor-help text-xs flex-shrink-0" style={{ color: '#C9A84C' }}>
-                            💌
+                      </td>
+                      {/* Asiste — only first of group */}
+                      <td className="px-4 py-2.5">
+                        {row.isGroupFirst ? (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{ backgroundColor: row.attendance ? '#E8F5E9' : '#FFEBEE', color: row.attendance ? '#388E3C' : '#C62828' }}>
+                            {row.attendance ? 'Sí' : 'No'}
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="px-2 py-0.5 rounded-full text-xs font-medium"
-                        style={{
-                          backgroundColor: r.attendance ? '#E8F5E9' : '#FFEBEE',
-                          color: r.attendance ? '#388E3C' : '#C62828',
-                        }}
-                      >
-                        {r.attendance ? 'Sí' : 'No'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center" style={{ color: '#555' }}>{r.adults_count}</td>
-                    <td className="px-4 py-3" style={{ color: '#555', minWidth: 160 }}>
-                      {(r.adult_menus ?? []).length > 0 ? (
-                        <div className="space-y-0.5">
-                          {(r.adult_menus ?? []).map((id, idx) => (
-                            <div key={idx} className="text-xs">
-                              {r.adults_count > 1 ? <span className="text-gray-400">A{idx + 1}: </span> : null}
-                              {menuLabel(id, menuOptions)}
-                            </div>
-                          ))}
-                          {(r.children_menus ?? []).filter(Boolean).map((id, idx) => (
-                            <div key={`c${idx}`} className="text-xs">
-                              <span className="text-gray-400">N{idx + 1}: </span>
-                              {menuLabel(id, menuOptions)}
-                            </div>
-                          ))}
-                        </div>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-center" style={{ color: '#555' }}>
-                      {r.has_children ? r.children_count : '—'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: '#555' }}>
-                      {busLabels[r.bus_option] ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 max-w-[150px] truncate" style={{ color: '#555' }} title={r.allergies ?? ''}>
-                      {r.allergies || '—'}
-                    </td>
-                    <td className="px-4 py-3 max-w-[150px] truncate" style={{ color: '#555' }} title={r.song_request ?? ''}>
-                      {r.song_request || '—'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: '#888', fontSize: 11 }}>
-                      {format(new Date(r.submitted_at), 'dd/MM/yy HH:mm')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleDelete(r.id, r.guest_name)}
-                        disabled={deleting === r.id}
-                        title="Eliminar confirmación"
-                        className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-40"
-                        style={{ color: '#C62828', backgroundColor: '#FFEBEE' }}
-                      >
-                        {deleting === r.id ? '...' : '🗑'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        ) : null}
+                      </td>
+                      {/* Menú — per person */}
+                      <td className="px-4 py-2.5" style={{ color: '#555', minWidth: 130 }}>
+                        {menuLabel(row.menu, menuOptions)}
+                      </td>
+                      {/* Bus — only first of group */}
+                      <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: '#555' }}>
+                        {row.isGroupFirst ? (busLabels[row.busOption] ?? '—') : null}
+                      </td>
+                      {/* Alergias — only first of group */}
+                      <td className="px-4 py-2.5 max-w-[130px] truncate" style={{ color: '#555' }} title={row.isGroupFirst ? (row.allergies ?? '') : ''}>
+                        {row.isGroupFirst ? (row.allergies || '—') : null}
+                      </td>
+                      {/* Canción — only first of group */}
+                      <td className="px-4 py-2.5 max-w-[130px] truncate" style={{ color: '#555' }} title={row.isGroupFirst ? (row.songRequest ?? '') : ''}>
+                        {row.isGroupFirst ? (row.songRequest || '—') : null}
+                      </td>
+                      {/* Fecha — only first of group */}
+                      <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: '#888', fontSize: 11 }}>
+                        {row.isGroupFirst ? format(new Date(row.submittedAt), 'dd/MM/yy HH:mm') : null}
+                      </td>
+                      {/* Delete */}
+                      <td className="px-4 py-2.5">
+                        <button
+                          onClick={() => handleDeletePerson(row)}
+                          disabled={deleting === row.personKey}
+                          title="Eliminar persona"
+                          className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-40"
+                          style={{ color: '#C62828', backgroundColor: '#FFEBEE' }}>
+                          {deleting === row.personKey ? '...' : '🗑'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

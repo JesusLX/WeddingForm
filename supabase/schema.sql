@@ -121,8 +121,10 @@ CREATE POLICY "owner_all" ON menu_options FOR ALL
 CREATE POLICY "public_read" ON menu_options FOR SELECT
   USING (wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
 
--- RSVP responses: owner reads/deletes, anyone can INSERT
+-- RSVP responses: owner reads/updates/deletes, anyone can INSERT
 CREATE POLICY "owner_read" ON rsvp_responses FOR SELECT
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+CREATE POLICY "owner_update" ON rsvp_responses FOR UPDATE
   USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
 CREATE POLICY "owner_delete" ON rsvp_responses FOR DELETE
   USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
