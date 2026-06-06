@@ -56,8 +56,13 @@ export function GuestTable({
     if (!confirm(`¿Eliminar la confirmación de "${name}"? El invitado podrá volver a enviar el formulario.`)) return
     setDeleting(id)
     const supabase = createClient()
+    const { error } = await supabase.from('rsvp_responses').delete().eq('id', id)
+    if (error) {
+      alert(`Error al eliminar: ${error.message}`)
+      setDeleting(null)
+      return
+    }
     await Promise.all([
-      supabase.from('rsvp_responses').delete().eq('id', id),
       supabase.from('table_assignments').delete().like('guest_key', `${id}_%`),
       supabase.from('guest_relationships').delete().or(`guest_a_key.like.${id}_%,guest_b_key.like.${id}_%`),
     ])
