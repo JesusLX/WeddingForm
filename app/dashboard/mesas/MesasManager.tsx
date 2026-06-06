@@ -40,7 +40,32 @@ export function MesasManager({
   initialMaxGuests,
 }: Props) {
   const [tab, setTab] = useState<Tab>('relaciones')
-  const [relationships, setRelationships] = useState<GuestRelationship[]>(initialRelationships)
+  const [relationships, setRelationships] = useState<GuestRelationship[]>(() => {
+    // Auto-generate TOGETHER links for guests from the same RSVP submission
+    const guests = guestsFromResponses(responses)
+    const existing = new Set(initialRelationships.map(r => [r.guest_a_key, r.guest_b_key].sort().join('|')))
+    const auto: GuestRelationship[] = []
+    const rsvpGroups = new Map<string, string[]>()
+    guests.forEach(g => {
+      const arr = rsvpGroups.get(g.rsvpId) ?? []
+      arr.push(g.key)
+      rsvpGroups.set(g.rsvpId, arr)
+    })
+    rsvpGroups.forEach(keys => {
+      if (keys.length < 2) return
+      for (let i = 0; i < keys.length; i++) {
+        for (let j = i + 1; j < keys.length; j++) {
+          const sorted = [keys[i], keys[j]].sort()
+          const pairKey = sorted.join('|')
+          if (!existing.has(pairKey)) {
+            auto.push({ id: crypto.randomUUID(), wedding_id: weddingId, guest_a_key: sorted[0], guest_b_key: sorted[1], type: 'TOGETHER' })
+            existing.add(pairKey)
+          }
+        }
+      }
+    })
+    return [...initialRelationships, ...auto]
+  })
   const [tablesCount, setTablesCount] = useState(initialTablesCount)
   const [minGuests, setMinGuests] = useState(initialMinGuests)
   const [maxGuests, setMaxGuests] = useState(initialMaxGuests)
