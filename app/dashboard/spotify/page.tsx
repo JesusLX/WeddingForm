@@ -8,8 +8,18 @@ export default async function SpotifyPage() {
   if (!user) redirect('/login')
 
   const { data: wedding } = await supabase
-    .from('weddings').select('id, spotify_playlist_url, spotify_description').eq('user_id', user.id).single()
+    .from('weddings')
+    .select('id, spotify_playlist_url')
+    .eq('user_id', user.id)
+    .single()
   if (!wedding) redirect('/dashboard/configurar')
+
+  // spotify_description may not exist if migration hasn't run yet
+  const { data: extra } = await supabase
+    .from('weddings')
+    .select('spotify_description')
+    .eq('id', wedding.id)
+    .single()
 
   return (
     <div className="max-w-xl">
@@ -19,7 +29,7 @@ export default async function SpotifyPage() {
       <SpotifyManager
         weddingId={wedding.id}
         initialUrl={wedding.spotify_playlist_url ?? ''}
-        initialDescription={wedding.spotify_description ?? ''}
+        initialDescription={(extra as any)?.spotify_description ?? ''}
       />
     </div>
   )
