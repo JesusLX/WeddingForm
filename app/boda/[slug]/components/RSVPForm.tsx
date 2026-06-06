@@ -14,7 +14,6 @@ const schema = z.object({
   adults_count: z.number().min(1).max(20).optional(),
   has_children: z.enum(['yes', 'no']).optional(),
   children_count: z.number().min(0).max(20).optional(),
-  allergies: z.string().max(500).optional(),
   song_request: z.string().max(200).optional(),
   message: z.string().max(1000).optional(),
 })
@@ -64,7 +63,8 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
   const [status, setStatus] = useState<Status>('idle')
   const [adultMenus, setAdultMenus] = useState<string[]>([''])
   const [adultNames, setAdultNames] = useState<string[]>([''])
-  const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string }[]>([])
+  const [adultAllergies, setAdultAllergies] = useState<string[]>([''])
+  const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string; allergies: string }[]>([])
   const [busIda, setBusIda] = useState(false)
   const [busVuelta, setBusVuelta] = useState(false)
   const [hp, setHp] = useState('')
@@ -96,16 +96,42 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
       while (arr.length < adultsCount) arr.push('')
       return arr.slice(0, adultsCount)
     })
+    setAdultAllergies(prev => {
+      const arr = [...prev]
+      while (arr.length < adultsCount) arr.push('')
+      return arr.slice(0, adultsCount)
+    })
   }, [adultsCount])
 
 
   useEffect(() => {
     setChildrenData(prev => {
       const arr = [...prev]
-      while (arr.length < childrenCount) arr.push({ name: '', wantsMenu: false, menuId: '' })
+      while (arr.length < childrenCount) arr.push({ name: '', wantsMenu: false, menuId: '', allergies: '' })
       return arr.slice(0, childrenCount)
     })
   }, [childrenCount])
+
+  function buildAllergies(): string {
+    const parts: string[] = []
+    if (adultsCount === 1) {
+      if (adultAllergies[0]?.trim()) parts.push(adultAllergies[0].trim())
+    } else {
+      adultAllergies.forEach((a, i) => {
+        if (a?.trim()) {
+          const name = i === 0 ? guestName : (adultNames[i]?.trim() || `Adulto ${i + 1}`)
+          parts.push(`${name}: ${a.trim()}`)
+        }
+      })
+    }
+    childrenData.forEach((c, i) => {
+      if (c.allergies?.trim()) {
+        const name = c.name?.trim() || `Niño/a ${i + 1}`
+        parts.push(`${name}: ${c.allergies.trim()}`)
+      }
+    })
+    return parts.join(' | ')
+  }
 
   async function onSubmit(values: FormValues) {
     if (hp) { setStatus('success'); return }
@@ -130,6 +156,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
             ? childrenData.map(c => c.wantsMenu ? (c.menuId || null) : null)
             : [],
           bus_option: isAttending ? busOptionFromCheckboxes(busIda, busVuelta) : 'none',
+          allergies: isAttending ? buildAllergies() : null,
           hp_website: hp,
           submitted_ms: Date.now() - loadedAt.current,
         }),
@@ -257,20 +284,41 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                       menuOptions={menuOptions}
                     />
                   )}
+                  <input
+                    value={adultAllergies[i] ?? ''}
+                    onChange={e => setAdultAllergies(prev => prev.map((a, idx) => idx === i ? e.target.value : a))}
+                    placeholder="Alergias o restricciones (opcional)"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
                 </div>
               ))}
             </div>
           )}
 
-          {/* Single adult: just menu */}
-          {adultsCount === 1 && menuOptions.length > 0 && (
-            <div>
-              <label className={labelClass} style={labelStyle}>Elección de menú</label>
-              <MenuGrid
-                selectedId={adultMenus[0] ?? ''}
-                onSelect={id => setAdultMenus([id])}
-                menuOptions={menuOptions}
-              />
+          {/* Single adult: menu + allergies */}
+          {adultsCount === 1 && (
+            <div className="space-y-3">
+              {menuOptions.length > 0 && (
+                <div>
+                  <label className={labelClass} style={labelStyle}>Elección de menú</label>
+                  <MenuGrid
+                    selectedId={adultMenus[0] ?? ''}
+                    onSelect={id => setAdultMenus([id])}
+                    menuOptions={menuOptions}
+                  />
+                </div>
+              )}
+              <div>
+                <label className={labelClass} style={labelStyle}>Alergias o restricciones alimentarias</label>
+                <input
+                  value={adultAllergies[0] ?? ''}
+                  onChange={e => setAdultAllergies([e.target.value])}
+                  placeholder="Ej: gluten, lactosa... (opcional)"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
             </div>
           )}
 
@@ -327,6 +375,13 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                           menuOptions={menuOptions}
                         />
                       )}
+                      <input
+                        value={childrenData[i]?.allergies ?? ''}
+                        onChange={e => setChildrenData(prev => prev.map((c, idx) => idx === i ? { ...c, allergies: e.target.value } : c))}
+                        placeholder="Alergias o restricciones (opcional)"
+                        className={inputClass}
+                        style={inputStyle}
+                      />
                     </div>
                   ))}
                 </div>
@@ -362,18 +417,6 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
               </div>
             </div>
           )}
-
-          {/* Allergies */}
-          <div>
-            <label className={labelClass} style={labelStyle}>Alergias o restricciones alimentarias</label>
-            <textarea
-              {...register('allergies')}
-              rows={2}
-              placeholder="Ej: alergia al gluten, intolerancia a la lactosa..."
-              className={inputClass}
-              style={{ ...inputStyle, resize: 'none' }}
-            />
-          </div>
 
           {/* Song */}
           <div>
