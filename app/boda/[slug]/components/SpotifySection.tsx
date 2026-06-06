@@ -1,3 +1,4 @@
+'use client'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { getSpotifyEmbedUrl } from '@/lib/utils'
 import type { Wedding } from '@/lib/types'
