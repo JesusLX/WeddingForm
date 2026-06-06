@@ -1,5 +1,6 @@
 'use client'
 import { useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { guestsFromResponses, autoAssignSeats } from '@/lib/seating-algorithm'
 import { RelationshipGraph } from './RelationshipGraph'
@@ -51,6 +52,8 @@ export function MesasManager({
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
   const [autoWarnings, setAutoWarnings] = useState<string[]>([])
+  const [syncing, setSyncing] = useState(false)
+  const router = useRouter()
 
   const guests = useMemo(() => guestsFromResponses(responses), [responses])
 
@@ -72,6 +75,40 @@ export function MesasManager({
     setAssignments(result)
     setAutoWarnings(warnings)
     setTab('mesas')
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    const supabase = createClient()
+    const validIds = responses.map(r => r.id)
+
+    const [{ data: allAssignments }, { data: allRelationships }] = await Promise.all([
+      supabase.from('table_assignments').select('id, guest_key').eq('wedding_id', weddingId),
+      supabase.from('guest_relationships').select('id, guest_a_key, guest_b_key').eq('wedding_id', weddingId),
+    ])
+
+    const staleAssignmentIds = (allAssignments ?? [])
+      .filter(a => !validIds.some(id => a.guest_key.startsWith(`${id}_`)))
+      .map(a => a.id)
+
+    const staleRelIds = (allRelationships ?? [])
+      .filter(r =>
+        !validIds.some(id => r.guest_a_key.startsWith(`${id}_`)) ||
+        !validIds.some(id => r.guest_b_key.startsWith(`${id}_`))
+      )
+      .map(r => r.id)
+
+    await Promise.all([
+      staleAssignmentIds.length
+        ? supabase.from('table_assignments').delete().in('id', staleAssignmentIds)
+        : Promise.resolve(),
+      staleRelIds.length
+        ? supabase.from('guest_relationships').delete().in('id', staleRelIds)
+        : Promise.resolve(),
+    ])
+
+    setSyncing(false)
+    router.refresh()
   }
 
   async function handleSave() {
@@ -180,6 +217,15 @@ export function MesasManager({
           style={{ backgroundColor: '#2D2D2D', color: '#fff' }}
         >
           ✨ Calcular mesas automáticamente
+        </button>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          title="Elimina invitados cuya confirmación ya fue borrada"
+          className="px-4 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: '#fff', color: '#2D2D2D', border: '1px solid #E5D5C5' }}
+        >
+          {syncing ? 'Limpiando...' : '🔄 Sincronizar con confirmaciones'}
         </button>
       </div>
 
