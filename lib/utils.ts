@@ -42,7 +42,16 @@ export function buildMapsEmbedUrl(mapsUrl: string): string {
 export function buildMapsDirectionsUrl(mapsUrl: string): string {
   try {
     const url = new URL(mapsUrl)
-    if (url.hostname.includes('google.com')) return mapsUrl
+    if (url.hostname.includes('google.com')) {
+      // Embed URLs can't be opened directly — strip /embed and keep the pb param
+      if (url.pathname.includes('/embed')) {
+        const pb = url.searchParams.get('pb')
+        return pb
+          ? `https://www.google.com/maps?pb=${pb}`
+          : 'https://maps.google.com/maps'
+      }
+      return mapsUrl
+    }
   } catch {}
   return `https://maps.google.com/maps?q=${encodeURIComponent(mapsUrl)}`
 }
