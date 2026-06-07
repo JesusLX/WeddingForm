@@ -142,19 +142,39 @@ export function PaletteManager({
       {/* Custom pickers */}
       <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: 'white', border: '1px solid #F4D7D7' }}>
         <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Colores personalizados</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {colorFields.map(({ label, value, onChange }) => (
-            <div key={label} className="flex items-center gap-3">
-              <input
-                type="color"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="w-10 h-10 rounded-lg border cursor-pointer"
-                style={{ borderColor: '#F4D7D7', padding: 2 }}
-              />
-              <div>
-                <p className="text-xs font-medium" style={{ color: '#2D2D2D' }}>{label}</p>
-                <p className="text-xs font-mono" style={{ color: '#999' }}>{value}</p>
+            <div key={label} className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid #F4D7D7' }}>
+              {/* Color swatch — clicking it opens the native picker */}
+              <label className="cursor-pointer flex-shrink-0 relative">
+                <div
+                  className="w-10 h-10 rounded-lg border border-black/10 shadow-sm"
+                  style={{ backgroundColor: value }}
+                />
+                <input
+                  type="color"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                />
+              </label>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium mb-1" style={{ color: '#2D2D2D' }}>{label}</p>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) onChange(v)
+                  }}
+                  onBlur={(e) => {
+                    if (!/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) onChange(value)
+                  }}
+                  maxLength={7}
+                  className="w-full px-2 py-1 rounded-lg border text-xs font-mono outline-none focus:ring-2 focus:ring-amber-300"
+                  style={{ borderColor: '#F4D7D7', color: '#2D2D2D' }}
+                  placeholder="#000000"
+                />
               </div>
             </div>
           ))}
