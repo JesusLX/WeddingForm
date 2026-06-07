@@ -8,22 +8,22 @@ export function DressCodeSection({ wedding }: { wedding: Wedding }) {
     <section className="py-24 px-6 bg-white">
       <div className="max-w-2xl mx-auto text-center">
         <ScrollReveal>
-          <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: '#C9A84C' }}>
+          <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: 'var(--w-primary)' }}>
             Vestimenta
           </p>
           <h2
             className="text-4xl md:text-5xl italic mb-6"
-            style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}
+            style={{ fontFamily: 'var(--font-playfair)', color: 'var(--w-dark)' }}
           >
             Código de vestimenta
           </h2>
-          <div className="h-px w-16 mx-auto mb-8" style={{ backgroundColor: '#C9A84C' }} />
+          <div className="h-px w-16 mx-auto mb-8" style={{ backgroundColor: 'var(--w-primary)' }} />
 
           <div
             className="inline-block px-8 py-4 rounded-2xl text-2xl font-semibold mb-6"
             style={{
-              backgroundColor: '#F4D7D7',
-              color: '#2D2D2D',
+              backgroundColor: 'var(--w-accent)',
+              color: 'var(--w-dark)',
               fontFamily: 'var(--font-playfair)',
             }}
           >

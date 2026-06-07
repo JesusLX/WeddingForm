@@ -9,16 +9,16 @@ export function GallerySection({ wedding }: { wedding: Wedding }) {
       <div className="max-w-6xl mx-auto">
         <ScrollReveal>
           <div className="text-center mb-14">
-            <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: '#C9A84C' }}>
+            <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: 'var(--w-primary)' }}>
               Momentos nuestros
             </p>
             <h2
               className="text-4xl md:text-5xl italic"
-              style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}
+              style={{ fontFamily: 'var(--font-playfair)', color: 'var(--w-dark)' }}
             >
               Galería
             </h2>
-            <div className="h-px w-16 mx-auto mt-6" style={{ backgroundColor: '#C9A84C' }} />
+            <div className="h-px w-16 mx-auto mt-6" style={{ backgroundColor: 'var(--w-primary)' }} />
           </div>
         </ScrollReveal>
 

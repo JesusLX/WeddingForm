@@ -14,16 +14,16 @@ export function RSVPSection({
       <div className="max-w-xl mx-auto">
         <ScrollReveal>
           <div className="text-center mb-12">
-            <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: '#C9A84C' }}>
+            <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: 'var(--w-primary)' }}>
               Confirmación
             </p>
             <h2
               className="text-4xl md:text-5xl italic mb-4"
-              style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}
+              style={{ fontFamily: 'var(--font-playfair)', color: 'var(--w-dark)' }}
             >
               ¿Vendrás?
             </h2>
-            <div className="h-px w-16 mx-auto mb-6" style={{ backgroundColor: '#C9A84C' }} />
+            <div className="h-px w-16 mx-auto mb-6" style={{ backgroundColor: 'var(--w-primary)' }} />
             <p className="text-sm" style={{ color: '#555555' }}>
               Rellena el formulario y dinos que podemos contar contigo.
             </p>
@@ -33,7 +33,7 @@ export function RSVPSection({
         <ScrollReveal>
           <div
             className="rounded-2xl p-6 md:p-8 shadow-sm"
-            style={{ border: '1px solid #F4D7D7', backgroundColor: '#FAF7F4' }}
+            style={{ border: '1px solid var(--w-accent)', backgroundColor: 'var(--w-bg)' }}
           >
             <RSVPForm wedding={wedding} menuOptions={menuOptions} />
           </div>

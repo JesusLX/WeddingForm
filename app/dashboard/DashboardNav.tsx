@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/menu', label: 'Menú', icon: '🍽️' },
   { href: '/dashboard/timeline', label: 'Programa', icon: '🕐' },
   { href: '/dashboard/galeria', label: 'Galería', icon: '🖼️' },
+  { href: '/dashboard/paleta', label: 'Paleta', icon: '🎨' },
   { href: '/dashboard/spotify', label: 'Spotify', icon: '🎵' },
   { href: '/dashboard/lista', label: 'Lista invitados', icon: '📋' },
   { href: '/dashboard/invitados', label: 'Confirmaciones', icon: '✅' },

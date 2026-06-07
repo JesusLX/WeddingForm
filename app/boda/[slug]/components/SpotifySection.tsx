@@ -12,16 +12,16 @@ export function SpotifySection({ wedding }: { wedding: Wedding }) {
     <section className="py-24 px-6 bg-white">
       <div className="max-w-2xl mx-auto text-center">
         <ScrollReveal>
-          <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: '#C9A84C' }}>
+          <p className="uppercase tracking-[0.3em] text-xs mb-4" style={{ color: 'var(--w-primary)' }}>
             Nuestra playlist
           </p>
           <h2
             className="text-4xl md:text-5xl italic mb-6"
-            style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}
+            style={{ fontFamily: 'var(--font-playfair)', color: 'var(--w-dark)' }}
           >
             La música del día
           </h2>
-          <div className="h-px w-16 mx-auto mb-10" style={{ backgroundColor: '#C9A84C' }} />
+          <div className="h-px w-16 mx-auto mb-10" style={{ backgroundColor: 'var(--w-primary)' }} />
 
           {wedding.spotify_description && (
             <p className="text-sm mb-8 leading-relaxed" style={{ color: '#555555' }}>
@@ -46,7 +46,7 @@ export function SpotifySection({ wedding }: { wedding: Wedding }) {
             <button
               onClick={() => document.getElementById('rsvp')?.scrollIntoView({ behavior: 'smooth' })}
               className="font-medium underline-offset-2 hover:underline cursor-pointer"
-              style={{ color: '#C9A84C' }}
+              style={{ color: 'var(--w-primary)' }}
             >
               Dínoslo en la confirmación ↓
             </button>

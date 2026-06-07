@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import type React from 'react'
 import type { Wedding, MenuOption } from '@/lib/types'
 import { HeroSection } from './components/HeroSection'
 import { OurStorySection } from './components/OurStorySection'
@@ -95,8 +96,15 @@ export default async function WeddingPage({ params }: Props) {
     </footer>
   )
 
+  const paletteVars = {
+    '--w-bg': wedding.color_bg ?? '#FAF7F4',
+    '--w-accent': wedding.color_accent ?? '#F4D7D7',
+    '--w-primary': wedding.color_primary ?? '#C9A84C',
+    '--w-dark': wedding.color_dark ?? '#2D2D2D',
+  } as React.CSSProperties
+
   return (
-    <main>
+    <main style={paletteVars}>
       <HeroSection wedding={wedding} />
       <OurStorySection wedding={wedding} />
       <EventDetailsSection wedding={wedding} />

@@ -173,6 +173,14 @@ CREATE POLICY "owner_all" ON table_assignments FOR ALL
   USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
 
 -- ============================================================
+-- PALETTE COLORS
+-- ============================================================
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS color_bg TEXT DEFAULT '#FAF7F4';
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS color_accent TEXT DEFAULT '#F4D7D7';
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS color_primary TEXT DEFAULT '#C9A84C';
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS color_dark TEXT DEFAULT '#2D2D2D';
+
+-- ============================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_updated_at()

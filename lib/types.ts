@@ -42,6 +42,10 @@ export interface Wedding {
   google_sheet_id: string | null
   bus_enabled: boolean
   is_published: boolean
+  color_bg: string | null
+  color_accent: string | null
+  color_primary: string | null
+  color_dark: string | null
   created_at: string
   updated_at: string
 }
