@@ -17,6 +17,8 @@ export function GalleryManager({
   const [uploadingGallery, setUploadingGallery] = useState(false)
   const [coverMsg, setCoverMsg] = useState('')
   const [galleryMsg, setGalleryMsg] = useState('')
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const coverRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
@@ -90,6 +92,35 @@ export function GalleryManager({
     if (path) await supabase.storage.from('wedding-photos').remove([path])
     await supabase.from('weddings').update({ cover_image_url: null }).eq('id', weddingId)
     setCover('')
+  }
+
+  function handleDragStart(i: number) {
+    setDraggingIndex(i)
+  }
+
+  function handleDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault()
+    setDragOverIndex(i)
+  }
+
+  async function handleDrop(i: number) {
+    if (draggingIndex === null || draggingIndex === i) {
+      setDraggingIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+    const reordered = [...images]
+    const [moved] = reordered.splice(draggingIndex, 1)
+    reordered.splice(i, 0, moved)
+    setImages(reordered)
+    setDraggingIndex(null)
+    setDragOverIndex(null)
+    await supabase.from('weddings').update({ gallery_image_urls: reordered }).eq('id', weddingId)
+  }
+
+  function handleDragEnd() {
+    setDraggingIndex(null)
+    setDragOverIndex(null)
   }
 
   const msgStyle = (msg: string) => ({
@@ -186,21 +217,38 @@ export function GalleryManager({
             + Haz clic para subir fotos
           </button>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {images.map((url, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden">
-                <img src={url} className="w-full h-full object-cover" alt={`Foto ${i + 1}`} />
-                <button
-                  onClick={() => removeImage(url)}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: 'white' }}
-                  title="Eliminar foto"
+          <>
+            <p className="text-xs" style={{ color: '#999' }}>
+              Arrastra las fotos para cambiar el orden.
+            </p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {images.map((url, i) => (
+                <div
+                  key={url}
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDrop={() => handleDrop(i)}
+                  onDragEnd={handleDragEnd}
+                  className="relative aspect-square rounded-xl overflow-hidden cursor-grab active:cursor-grabbing transition-opacity"
+                  style={{
+                    opacity: draggingIndex === i ? 0.4 : 1,
+                    outline: dragOverIndex === i && draggingIndex !== i ? '2px solid #C9A84C' : undefined,
+                  }}
                 >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
+                  <img src={url} className="w-full h-full object-cover pointer-events-none" alt={`Foto ${i + 1}`} />
+                  <button
+                    onClick={() => removeImage(url)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: 'white' }}
+                    title="Eliminar foto"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
