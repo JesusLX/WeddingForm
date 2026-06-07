@@ -68,13 +68,26 @@ export function GalleryManager({
     setUploadingGallery(false)
   }
 
+  function extractStoragePath(url: string): string | null {
+    const marker = '/wedding-photos/'
+    const idx = url.indexOf(marker)
+    if (idx === -1) return null
+    return url.slice(idx + marker.length).split('?')[0]
+  }
+
   async function removeImage(url: string) {
+    if (!confirm('¿Eliminar esta foto?')) return
+    const path = extractStoragePath(url)
+    if (path) await supabase.storage.from('wedding-photos').remove([path])
     const newImages = images.filter((i) => i !== url)
     await supabase.from('weddings').update({ gallery_image_urls: newImages }).eq('id', weddingId)
     setImages(newImages)
   }
 
   async function removeCover() {
+    if (!confirm('¿Eliminar la foto de portada?')) return
+    const path = extractStoragePath(cover)
+    if (path) await supabase.storage.from('wedding-photos').remove([path])
     await supabase.from('weddings').update({ cover_image_url: null }).eq('id', weddingId)
     setCover('')
   }
@@ -175,12 +188,13 @@ export function GalleryManager({
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {images.map((url, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden group">
+              <div key={i} className="relative aspect-square rounded-xl overflow-hidden">
                 <img src={url} className="w-full h-full object-cover" alt={`Foto ${i + 1}`} />
                 <button
                   onClick={() => removeImage(url)}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: 'white' }}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: 'white' }}
+                  title="Eliminar foto"
                 >
                   ✕
                 </button>
