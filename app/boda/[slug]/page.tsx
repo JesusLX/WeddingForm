@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import type React from 'react'
-import type { Wedding, BusRoute } from '@/lib/types'
+import type { Wedding, MenuOption, BusRoute } from '@/lib/types'
+import { demoWedding, demoMenuOptions, demoBusRoutes } from '@/lib/demo-wedding'
 import { HeroSection } from './components/HeroSection'
 import { OurStorySection } from './components/OurStorySection'
 import { EventDetailsSection } from './components/EventDetailsSection'
@@ -22,13 +23,14 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const supabase = await createServerSupabaseClient()
-  const { data: wedding } = await supabase
-    .from('weddings')
-    .select('partner_1, partner_2, wedding_date, ceremony_venue, ceremony_address, cover_image_url')
-    .eq('slug', slug)
-    .eq('is_published', true)
-    .single()
+  const wedding = slug === 'demo'
+    ? demoWedding
+    : (await (await createServerSupabaseClient())
+        .from('weddings')
+        .select('partner_1, partner_2, wedding_date, ceremony_venue, ceremony_address, cover_image_url')
+        .eq('slug', slug)
+        .eq('is_published', true)
+        .single()).data
 
   if (!wedding) return { title: 'Boda' }
 
@@ -71,21 +73,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function WeddingPage({ params }: Props) {
   const { slug } = await params
-  const supabase = await createServerSupabaseClient()
 
-  const { data: wedding } = await supabase
-    .from('weddings')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true)
-    .single<Wedding>()
+  let wedding: Wedding
+  let menuOptions: MenuOption[]
+  let busRoutes: BusRoute[]
 
-  if (!wedding) notFound()
+  if (slug === 'demo') {
+    wedding = demoWedding
+    menuOptions = demoMenuOptions
+    busRoutes = demoBusRoutes
+  } else {
+    const supabase = await createServerSupabaseClient()
+    const { data } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_published', true)
+      .single<Wedding>()
 
-  const [{ data: menuOptions }, { data: busRoutes }] = await Promise.all([
-    supabase.from('menu_options').select('*').eq('wedding_id', wedding.id).order('sort_order'),
-    supabase.from('bus_routes').select('id, direction, label, sort_order').eq('wedding_id', wedding.id).order('sort_order'),
-  ])
+    if (!data) notFound()
+    wedding = data
+
+    const [{ data: menus }, { data: buses }] = await Promise.all([
+      supabase.from('menu_options').select('*').eq('wedding_id', wedding.id).order('sort_order'),
+      supabase.from('bus_routes').select('id, direction, label, sort_order').eq('wedding_id', wedding.id).order('sort_order'),
+    ])
+    menuOptions = menus ?? []
+    busRoutes = (buses ?? []) as BusRoute[]
+  }
 
   const footer = (
     <footer className="py-8 text-center text-sm" style={{ color: '#C9A84C', backgroundColor: '#2D2D2D' }}>
@@ -114,7 +129,7 @@ export default async function WeddingPage({ params }: Props) {
       <GallerySection wedding={wedding} />
       <DressCodeSection wedding={wedding} />
       <SpotifySection wedding={wedding} />
-      <RSVPSection wedding={wedding} menuOptions={menuOptions ?? []} busRoutes={(busRoutes ?? []) as BusRoute[]} />
+      <RSVPSection wedding={wedding} menuOptions={menuOptions} busRoutes={busRoutes} />
       <BankInfoSection wedding={wedding} />
       <FAQSection wedding={wedding} />
       {footer}

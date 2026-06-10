@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-server'
 import { appendRsvpToSheet } from '@/lib/sheets'
 import { rateLimit } from '@/lib/rate-limit'
+import { DEMO_WEDDING_ID } from '@/lib/demo-wedding'
 
 const schema = z.object({
   wedding_id: z.string().uuid(),
@@ -40,6 +41,11 @@ export async function POST(req: NextRequest) {
 
     // Anti-bot: honeypot filled or submitted too fast → pretend success
     if (data.hp_website || (data.submitted_ms !== undefined && data.submitted_ms < 1500)) {
+      return NextResponse.json({ ok: true })
+    }
+
+    // Demo wedding: let visitors try the form without persisting anything
+    if (data.wedding_id === DEMO_WEDDING_ID) {
       return NextResponse.json({ ok: true })
     }
 
