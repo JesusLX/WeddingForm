@@ -82,7 +82,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
           <div>
             <label className={labelClass} style={labelStyle}>Novio/a 1</label>
             <input value={form.partner_1} onChange={(e) => set('partner_1', e.target.value)}
-              className={inputClass} style={inputStyle} placeholder="Jesús" />
+              className={inputClass} style={inputStyle} placeholder="Pedro" />
           </div>
           <div>
             <label className={labelClass} style={labelStyle}>Novio/a 2</label>
@@ -101,7 +101,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
             <div className="flex items-center gap-1">
               <span className="text-xs" style={{ color: '#888' }}>/boda/</span>
               <input value={form.slug} onChange={(e) => set('slug', e.target.value)}
-                className={inputClass} style={inputStyle} placeholder="jesus-y-maria" />
+                className={inputClass} style={inputStyle} placeholder="maria-y-pedro" />
             </div>
           </div>
         </div>
@@ -223,7 +223,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
           <label className={labelClass} style={labelStyle}>Concepto</label>
           <input value={form.bank_concept} onChange={(e) => set('bank_concept', e.target.value)}
             className={inputClass} style={inputStyle}
-            placeholder="Ej: Boda Jesús y María" />
+            placeholder="Ej: Boda María y Pedro" />
         </div>
       </div>
 

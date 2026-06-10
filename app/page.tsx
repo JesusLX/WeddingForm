@@ -78,7 +78,7 @@ export default function HomePage() {
           >
             <p className="uppercase tracking-[0.3em] text-[10px] mb-3" style={{ color: GOLD }}>Nos casamos</p>
             <p className="text-3xl italic mb-1" style={{ fontFamily: 'var(--font-playfair)', color: DARK }}>
-              María <span style={{ color: GOLD }}>&</span> Jesús
+              María <span style={{ color: GOLD }}>&</span> Pedro
             </p>
             <p className="text-xs mb-5" style={{ color: '#888' }}>Sábado, 12 de septiembre de 2026 · Sevilla</p>
             <div className="h-px w-12 mx-auto mb-5" style={{ backgroundColor: GOLD }} />
