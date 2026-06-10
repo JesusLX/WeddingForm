@@ -17,7 +17,7 @@ const schema = z.object({
   children_menus: z.array(z.string().nullable()).max(20).optional(),
   bus_outbound: z.string().max(200).nullish(),
   bus_return: z.string().max(200).nullish(),
-  allergies: z.string().max(500).optional(),
+  allergies: z.string().max(500).nullish(),
   song_request: z.string().max(200).optional(),
   message: z.string().max(1000).optional(),
   hp_website: z.string().optional(),
