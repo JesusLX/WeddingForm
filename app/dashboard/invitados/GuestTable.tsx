@@ -8,6 +8,27 @@ const busLabels: Record<string, string> = {
 }
 
 interface MenuRef { id: string; name: string; emoji: string }
+interface GuestRef { id: string; name: string; rsvp_response_id: string | null }
+
+function nameSimilarity(a: string, b: string): number {
+  const norm = (s: string) => s.toLowerCase().trim()
+  const aWords = norm(a).split(/\s+/)
+  const bWords = norm(b).split(/\s+/)
+  const aSet = new Set(aWords)
+  const wordMatches = bWords.filter(w => aSet.has(w)).length
+  if (wordMatches > 0) return wordMatches / Math.max(aWords.length, bWords.length)
+  // bigram fallback
+  const bigrams = (s: string) => {
+    const out = new Set<string>()
+    for (let i = 0; i < s.length - 1; i++) out.add(s.slice(i, i + 2))
+    return out
+  }
+  const ab = bigrams(norm(a))
+  const bb = bigrams(norm(b))
+  const inter = [...ab].filter(x => bb.has(x)).length
+  const union = new Set([...ab, ...bb]).size
+  return union === 0 ? 0 : inter / union
+}
 
 interface Response {
   id: string
@@ -88,16 +109,46 @@ function flattenResponses(responses: Response[]): PersonRow[] {
   return rows
 }
 
-export function GuestTable({ responses, menuOptions }: { responses: Response[]; menuOptions: MenuRef[] }) {
+export function GuestTable({
+  responses,
+  menuOptions,
+  expectedGuests,
+}: {
+  responses: Response[]
+  menuOptions: MenuRef[]
+  expectedGuests: GuestRef[]
+}) {
   const [tab, setTab] = useState<'all' | 'confirmed' | 'declined'>('all')
   const [search, setSearch] = useState('')
   const [items, setItems] = useState<Response[]>(responses)
+  const [guests, setGuests] = useState<GuestRef[]>(expectedGuests)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
 
   function showError(message: string) {
     setErrorMsg(message)
     setTimeout(() => setErrorMsg(''), 5000)
+  }
+
+  async function handleLink(rsvpId: string, guestId: string | null) {
+    const supabase = createClient()
+    const prev = guests.find(g => g.rsvp_response_id === rsvpId)
+    if (prev?.id === guestId) return
+    if (prev) {
+      const { error } = await supabase.from('expected_guests')
+        .update({ rsvp_response_id: null }).eq('id', prev.id)
+      if (error) { showError(`Error al desenlazar: ${error.message}`); return }
+    }
+    if (guestId) {
+      const { error } = await supabase.from('expected_guests')
+        .update({ rsvp_response_id: rsvpId }).eq('id', guestId)
+      if (error) { showError(`Error al enlazar: ${error.message}`); return }
+    }
+    setGuests(prev2 => prev2.map(g => {
+      if (g.id === prev?.id) return { ...g, rsvp_response_id: null }
+      if (g.id === guestId) return { ...g, rsvp_response_id: rsvpId }
+      return g
+    }))
   }
 
   const allRows = flattenResponses(items)
@@ -140,6 +191,9 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
         supabase.from('guest_relationships').delete().or(`guest_a_key.like.${row.rsvpId}_%,guest_b_key.like.${row.rsvpId}_%`),
       ])
       setItems(prev => prev.filter(r => r.id !== row.rsvpId))
+      setGuests(prev => prev.map(g =>
+        g.rsvp_response_id === row.rsvpId ? { ...g, rsvp_response_id: null } : g
+      ))
     } else if (!row.isChild) {
       const newNames = (resp.adult_names ?? []).filter((_, i) => i !== row.personIndex)
       const newMenus = (resp.adult_menus ?? []).filter((_, i) => i !== row.personIndex)
@@ -243,7 +297,7 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: '#F9EEE8' }}>
-                  {['Nombre', 'Asiste', 'Menú', 'Autobús', 'Alergias', 'Canción', 'Fecha', ''].map(h => (
+                  {['Nombre', 'Lista', 'Asiste', 'Menú', 'Autobús', 'Alergias', 'Canción', 'Fecha', ''].map(h => (
                     <th key={h} className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wide" style={{ color: '#555555' }}>{h}</th>
                   ))}
                 </tr>
@@ -273,6 +327,38 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
                             <span title={row.message} className="cursor-help text-xs flex-shrink-0" style={{ color: '#C9A84C' }}>💌</span>
                           )}
                         </div>
+                      </td>
+                      {/* Lista — link to expected guest, only first of group */}
+                      <td className="px-3 py-2">
+                        {row.isGroupFirst ? (() => {
+                          const resp = items.find(r => r.id === row.rsvpId)
+                          const rsvpName = resp?.guest_name ?? row.name
+                          const linked = guests.find(g => g.rsvp_response_id === row.rsvpId)
+                          const options = guests
+                            .filter(g => !g.rsvp_response_id || g.rsvp_response_id === row.rsvpId)
+                            .map(g => ({ ...g, score: nameSimilarity(g.name, rsvpName) }))
+                            .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+                          return (
+                            <select
+                              value={linked?.id ?? ''}
+                              onChange={e => handleLink(row.rsvpId, e.target.value || null)}
+                              className="text-xs rounded-lg border px-2 py-1 outline-none focus:ring-2 focus:ring-amber-300"
+                              style={{
+                                borderColor: linked ? '#4CAF50' : '#F4D7D7',
+                                color: '#2D2D2D',
+                                maxWidth: 160,
+                                backgroundColor: linked ? '#F1FBF1' : 'white',
+                              }}
+                            >
+                              <option value="">— Sin enlazar —</option>
+                              {options.map(g => (
+                                <option key={g.id} value={g.id}>
+                                  {g.score > 0.3 ? `★ ${g.name}` : g.name}
+                                </option>
+                              ))}
+                            </select>
+                          )
+                        })() : null}
                       </td>
                       {/* Asiste — only first of group */}
                       <td className="px-4 py-2.5">
