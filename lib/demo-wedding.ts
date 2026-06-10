@@ -43,7 +43,7 @@ export const demoWedding: Wedding = {
   dress_code: 'Formal / Cocktail',
   dress_code_notes: 'Evitad el blanco (reservado para la novia). Los tonos pastel son bienvenidos.',
   rsvp_deadline: null,
-  bank_iban: 'ES00 1234 5678 9012 3456 7890',
+  bank_iban: 'ES00 0000 0000 0000 0000 0000',
   bank_holder: 'María y Pedro',
   bank_concept: 'Boda María y Pedro',
   gifts_text:
