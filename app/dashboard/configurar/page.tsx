@@ -12,7 +12,7 @@ export default async function ConfigurarPage() {
     .single()
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Configurar mi boda
       </h1>

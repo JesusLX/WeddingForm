@@ -9,7 +9,7 @@ export default async function GaleriaPage() {
   }>('id, gallery_image_urls, cover_image_url')
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Galería de fotos
       </h1>

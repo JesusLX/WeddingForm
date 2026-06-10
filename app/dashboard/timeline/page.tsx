@@ -9,7 +9,7 @@ export default async function TimelinePage() {
   )
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Programa del día
       </h1>

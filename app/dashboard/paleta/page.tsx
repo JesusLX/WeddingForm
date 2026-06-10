@@ -11,7 +11,7 @@ export default async function PaletaPage() {
   }>('id, color_bg, color_accent, color_primary, color_dark')
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl italic mb-2" style={pageTitleStyle}>
         Paleta de colores
       </h1>

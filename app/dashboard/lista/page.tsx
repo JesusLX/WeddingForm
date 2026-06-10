@@ -12,7 +12,7 @@ export default async function ListaPage() {
     .order('created_at')
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl italic mb-2" style={pageTitleStyle}>
         Lista de invitados
       </h1>
