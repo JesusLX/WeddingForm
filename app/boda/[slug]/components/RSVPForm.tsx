@@ -72,7 +72,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
   useEffect(() => { loadedAt.current = Date.now() }, [])
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema),
     defaultValues: { adults_count: 1 },
   })
 
@@ -207,7 +207,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
     const checked = watch(name) === value
     return (
       <label className={radioClass} style={{ borderColor: checked ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: checked ? 'var(--w-bg)' : 'white' }}>
-        <input type="radio" value={value} className="sr-only" {...register(name as any)} />
+        <input type="radio" value={value} className="sr-only" {...register(name)} />
         {emoji && <span className="text-lg">{emoji}</span>}
         <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{label}</span>
       </label>

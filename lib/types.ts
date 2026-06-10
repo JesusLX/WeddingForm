@@ -46,6 +46,9 @@ export interface Wedding {
   color_accent: string | null
   color_primary: string | null
   color_dark: string | null
+  tables_count: number | null
+  tables_min_guests: number | null
+  tables_max_guests: number | null
   created_at: string
   updated_at: string
 }

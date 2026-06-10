@@ -93,6 +93,12 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
   const [search, setSearch] = useState('')
   const [items, setItems] = useState<Response[]>(responses)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState('')
+
+  function showError(message: string) {
+    setErrorMsg(message)
+    setTimeout(() => setErrorMsg(''), 5000)
+  }
 
   const allRows = flattenResponses(items)
 
@@ -128,7 +134,7 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
     if (row.groupSize <= 1) {
       // Delete whole RSVP
       const { error } = await supabase.from('rsvp_responses').delete().eq('id', row.rsvpId)
-      if (error) { alert(`Error: ${error.message}`); setDeleting(null); return }
+      if (error) { showError(`Error al borrar: ${error.message}`); setDeleting(null); return }
       await Promise.all([
         supabase.from('table_assignments').delete().like('guest_key', `${row.rsvpId}_%`),
         supabase.from('guest_relationships').delete().or(`guest_a_key.like.${row.rsvpId}_%,guest_b_key.like.${row.rsvpId}_%`),
@@ -141,7 +147,7 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
       const { error } = await supabase.from('rsvp_responses').update({
         adults_count: newCount, adult_names: newNames, adult_menus: newMenus,
       }).eq('id', row.rsvpId)
-      if (error) { alert(`Error: ${error.message}`); setDeleting(null); return }
+      if (error) { showError(`Error al borrar: ${error.message}`); setDeleting(null); return }
       await Promise.all([
         supabase.from('table_assignments').delete().eq('guest_key', row.personKey),
         supabase.from('guest_relationships').delete().or(`guest_a_key.eq.${row.personKey},guest_b_key.eq.${row.personKey}`),
@@ -157,7 +163,7 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
         children_count: newCount, has_children: newCount > 0,
         children_names: newNames, children_menus: newMenus,
       }).eq('id', row.rsvpId)
-      if (error) { alert(`Error: ${error.message}`); setDeleting(null); return }
+      if (error) { showError(`Error al borrar: ${error.message}`); setDeleting(null); return }
       await Promise.all([
         supabase.from('table_assignments').delete().eq('guest_key', row.personKey),
         supabase.from('guest_relationships').delete().or(`guest_a_key.eq.${row.personKey},guest_b_key.eq.${row.personKey}`),
@@ -199,6 +205,11 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
 
   return (
     <div className="space-y-4">
+      {errorMsg && (
+        <div className="px-4 py-3 rounded-xl text-sm" style={{ backgroundColor: '#FDECEA', color: '#B71C1C', border: '1px solid #F5C6C6' }}>
+          {errorMsg}
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           {tabs.map(t => (

@@ -63,9 +63,13 @@ export function GalleryManager({
     }
     if (uploadedUrls.length > 0) {
       const newImages = [...images, ...uploadedUrls]
-      await supabase.from('weddings').update({ gallery_image_urls: newImages }).eq('id', weddingId)
-      setImages(newImages)
-      showMsg(setGalleryMsg, `${uploadedUrls.length} foto${uploadedUrls.length > 1 ? 's' : ''} añadida${uploadedUrls.length > 1 ? 's' : ''}`)
+      const { error } = await supabase.from('weddings').update({ gallery_image_urls: newImages }).eq('id', weddingId)
+      if (error) {
+        showMsg(setGalleryMsg, `Error al guardar: ${error.message}`)
+      } else {
+        setImages(newImages)
+        showMsg(setGalleryMsg, `${uploadedUrls.length} foto${uploadedUrls.length > 1 ? 's' : ''} añadida${uploadedUrls.length > 1 ? 's' : ''}`)
+      }
     }
     setUploadingGallery(false)
   }
@@ -79,18 +83,26 @@ export function GalleryManager({
 
   async function removeImage(url: string) {
     if (!confirm('¿Eliminar esta foto?')) return
+    const newImages = images.filter((i) => i !== url)
+    const { error } = await supabase.from('weddings').update({ gallery_image_urls: newImages }).eq('id', weddingId)
+    if (error) {
+      showMsg(setGalleryMsg, `Error al eliminar: ${error.message}`)
+      return
+    }
     const path = extractStoragePath(url)
     if (path) await supabase.storage.from('wedding-photos').remove([path])
-    const newImages = images.filter((i) => i !== url)
-    await supabase.from('weddings').update({ gallery_image_urls: newImages }).eq('id', weddingId)
     setImages(newImages)
   }
 
   async function removeCover() {
     if (!confirm('¿Eliminar la foto de portada?')) return
+    const { error } = await supabase.from('weddings').update({ cover_image_url: null }).eq('id', weddingId)
+    if (error) {
+      showMsg(setCoverMsg, `Error al eliminar: ${error.message}`)
+      return
+    }
     const path = extractStoragePath(cover)
     if (path) await supabase.storage.from('wedding-photos').remove([path])
-    await supabase.from('weddings').update({ cover_image_url: null }).eq('id', weddingId)
     setCover('')
   }
 
@@ -109,13 +121,18 @@ export function GalleryManager({
       setDragOverIndex(null)
       return
     }
+    const previous = images
     const reordered = [...images]
     const [moved] = reordered.splice(draggingIndex, 1)
     reordered.splice(i, 0, moved)
     setImages(reordered)
     setDraggingIndex(null)
     setDragOverIndex(null)
-    await supabase.from('weddings').update({ gallery_image_urls: reordered }).eq('id', weddingId)
+    const { error } = await supabase.from('weddings').update({ gallery_image_urls: reordered }).eq('id', weddingId)
+    if (error) {
+      setImages(previous)
+      showMsg(setGalleryMsg, `Error al reordenar: ${error.message}`)
+    }
   }
 
   function handleDragEnd() {

@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💍 Wedding RSVP — SaaS de invitaciones de boda
 
-## Getting Started
+Plataforma multi-pareja para crear páginas de invitación de boda con confirmación de asistencia (RSVP). Cada pareja gestiona su boda desde un panel privado; los invitados acceden a una página pública personalizada y confirman sin necesidad de registrarse.
 
-First, run the development server:
+## Funcionalidades
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Página pública personalizable** (`/boda/[slug]`): portada con cuenta atrás, historia, ubicaciones con mapa, programa del día, galería, código de vestimenta, playlist de Spotify, regalos (IBAN) y FAQ
+- **Paleta de colores personalizable** por boda (presets + colores propios)
+- **Formulario RSVP** multi-persona: adultos y niños con nombre, menú y alergias individuales, autobús ida/vuelta, sugerencia de canción
+- **Panel de administración**: estadísticas, configuración, menús, programa, galería con reordenación, lista de invitados esperados con import CSV, confirmaciones con detección de duplicados y export CSV
+- **Distribución de mesas**: grafo interactivo de relaciones (misma mesa / se conocen / separar) con asignación automática y ajuste manual por arrastre
+- **Integraciones**: Google Sheets (sincronización de respuestas), Spotify (playlist embebida)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · Supabase (Auth, PostgreSQL con RLS, Storage) · Google Sheets API · Zod · D3
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Puesta en marcha
 
-## Learn More
+1. **Dependencias**
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Supabase**
+   - Crea un proyecto en [supabase.com](https://supabase.com)
+   - Ejecuta `supabase/schema.sql` en el editor SQL (es idempotente: sirve para crear desde cero y para migrar)
+   - Crea un bucket de Storage público llamado `wedding-photos`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Variables de entorno** (`.env.local`)
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   SUPABASE_SERVICE_ROLE_KEY=...          # solo servidor, para /api/rsvp
+   GOOGLE_SERVICE_ACCOUNT_JSON='{...}'    # opcional, integración Google Sheets
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Desarrollo**
+   ```bash
+   npm run dev
+   ```
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run check` | Typecheck + lint (ejecutar antes de commitear) |
+| `npm run build` | Build de producción |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Arquitectura
+
+La documentación de arquitectura y las convenciones de desarrollo están en [`AGENTS.md`](./AGENTS.md). Resumen:
+
+- `app/boda/[slug]/` — página pública (server-rendered, theming vía CSS variables)
+- `app/dashboard/` — panel privado (patrón: `page.tsx` servidor + `XxxManager.tsx` cliente)
+- `app/api/rsvp/` — endpoint público con validación Zod, rate limiting y honeypot
+- `lib/` — tipos, clientes Supabase, helpers de auth (`requireWedding`), tokens de diseño, algoritmo de mesas
+- `supabase/schema.sql` — fuente de verdad del esquema (RLS multi-tenant)

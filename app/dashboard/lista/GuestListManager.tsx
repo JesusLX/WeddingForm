@@ -25,7 +25,13 @@ export function GuestListManager({
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
   const supabase = createClient()
+
+  function showError(message: string) {
+    setErrorMsg(message)
+    setTimeout(() => setErrorMsg(''), 5000)
+  }
 
   function startEdit(g: GuestWithResponse) {
     setEditingId(g.id)
@@ -44,31 +50,41 @@ export function GuestListManager({
       .from('expected_guests')
       .update({ name: editName.trim(), email: editEmail || null, phone: editPhone || null })
       .eq('id', id)
-    if (!error) {
-      setGuests(prev => prev.map(g =>
-        g.id === id ? { ...g, name: editName.trim(), email: editEmail || null, phone: editPhone || null } : g
-      ))
-      setEditingId(null)
+    if (error) {
+      showError(`Error al guardar: ${error.message}`)
+      return
     }
+    setGuests(prev => prev.map(g =>
+      g.id === id ? { ...g, name: editName.trim(), email: editEmail || null, phone: editPhone || null } : g
+    ))
+    setEditingId(null)
   }
 
   async function addGuest() {
     if (!name.trim()) return
     setSaving(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('expected_guests')
       .insert({ wedding_id: weddingId, name: name.trim(), email: email || null, phone: phone || null })
       .select().single()
-    if (data) setGuests((prev) => [...prev, { ...data, rsvp_response: null }])
+    setSaving(false)
+    if (error || !data) {
+      showError(`Error al añadir: ${error?.message ?? 'inténtalo de nuevo'}`)
+      return
+    }
+    setGuests((prev) => [...prev, { ...data, rsvp_response: null }])
     setName('')
     setEmail('')
     setPhone('')
-    setSaving(false)
   }
 
   async function deleteGuest(id: string, guestName: string) {
     if (!confirm(`¿Eliminar a "${guestName}" de la lista?`)) return
-    await supabase.from('expected_guests').delete().eq('id', id)
+    const { error } = await supabase.from('expected_guests').delete().eq('id', id)
+    if (error) {
+      showError(`Error al eliminar: ${error.message}`)
+      return
+    }
     setGuests((prev) => prev.filter((g) => g.id !== id))
   }
 
@@ -84,7 +100,7 @@ export function GuestListManager({
     const { data, error } = await supabase.from('expected_guests').insert(rows).select()
     setSaving(false)
     if (error || !data) {
-      alert('Error al importar. Revisa el formato e inténtalo de nuevo.')
+      showError(`Error al importar: ${error?.message ?? 'formato no válido'}. Revisa el formato e inténtalo de nuevo.`)
       return
     }
     setGuests((prev) => [...prev, ...data.map((g) => ({ ...g, rsvp_response: null }))])
@@ -102,6 +118,11 @@ export function GuestListManager({
 
   return (
     <div className="space-y-4">
+      {errorMsg && (
+        <div className="px-4 py-3 rounded-xl text-sm" style={{ backgroundColor: '#FDECEA', color: '#B71C1C', border: '1px solid #F5C6C6' }}>
+          {errorMsg}
+        </div>
+      )}
       {/* Stats */}
       {guests.length > 0 && (
         <div className="grid grid-cols-3 gap-3">

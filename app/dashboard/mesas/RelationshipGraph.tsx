@@ -16,6 +16,17 @@ const REL_LABELS: Record<RelationshipType, string> = {
 
 type Tool = RelationshipType | 'DELETE'
 
+interface GraphNode extends d3.SimulationNodeDatum {
+  id: string
+  name: string
+  isChild: boolean
+}
+
+interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
+  id: string
+  type: RelationshipType
+}
+
 interface Props {
   guests: SeatingGuest[]
   relationships: GuestRelationship[]
@@ -25,7 +36,7 @@ interface Props {
 
 export function RelationshipGraph({ guests, relationships, weddingId, onRelationshipsChange }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const simulationRef = useRef<d3.Simulation<any, any> | null>(null)
+  const simulationRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null)
   const linkGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null)
   const redrawLinksRef = useRef<((rels: GuestRelationship[]) => void) | null>(null)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
@@ -64,7 +75,7 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
     )
     svg.on('click.bg', () => setSelectedKey(null))
 
-    const nodes: any[] = guests.map(guest => ({
+    const nodes: GraphNode[] = guests.map(guest => ({
       id: guest.key,
       name: guest.name,
       isChild: guest.isChild,
@@ -77,29 +88,29 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
     linkGroupRef.current = linkGroup
 
     const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink<any, any>([]).id((d: any) => d.id).distance(110))
+      .force('link', d3.forceLink<GraphNode, GraphLink>([]).id(d => d.id).distance(110))
       .force('charge', d3.forceManyBody().strength(-280))
       .force('center', d3.forceCenter(W / 2, H / 2))
       .force('collide', d3.forceCollide(46))
     simulationRef.current = simulation
 
     simulation.on('tick', () => {
-      linkGroup.selectAll<SVGLineElement, any>('line')
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y)
-      nodeGroup.selectAll<SVGGElement, any>('g.node')
+      linkGroup.selectAll<SVGLineElement, GraphLink>('line')
+        .attr('x1', d => (d.source as GraphNode).x ?? 0)
+        .attr('y1', d => (d.source as GraphNode).y ?? 0)
+        .attr('x2', d => (d.target as GraphNode).x ?? 0)
+        .attr('y2', d => (d.target as GraphNode).y ?? 0)
+      nodeGroup.selectAll<SVGGElement, GraphNode>('g.node')
         .attr('transform', d => `translate(${d.x},${d.y})`)
     })
 
-    const nodeEl = nodeGroup.selectAll<SVGGElement, any>('g.node')
-      .data(nodes, (d: any) => d.id)
+    const nodeEl = nodeGroup.selectAll<SVGGElement, GraphNode>('g.node')
+      .data(nodes, d => d.id)
       .enter().append('g')
       .attr('class', 'node')
       .style('cursor', 'pointer')
       .call(
-        d3.drag<SVGGElement, any>()
+        d3.drag<SVGGElement, GraphNode>()
           .on('start', (ev, d) => { if (!ev.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
           .on('drag', (ev, d) => { d.fx = ev.x; d.fy = ev.y })
           .on('end', (ev, d) => { if (!ev.active) simulation.alphaTarget(0); d.fx = null; d.fy = null })
@@ -138,23 +149,23 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
 
     // Circle
     nodeEl.append('circle')
-      .attr('r', (d: any) => d.isChild ? 22 : 30)
-      .attr('fill', (d: any) => d.isChild ? '#F4D7D7' : '#C9A84C')
+      .attr('r', d => d.isChild ? 22 : 30)
+      .attr('fill', d => d.isChild ? '#F4D7D7' : '#C9A84C')
       .attr('stroke', '#2D2D2D')
       .attr('stroke-width', 1.5)
 
     // Name (first name only)
     nodeEl.append('text')
-      .text((d: any) => d.name.split(' ')[0])
+      .text(d => d.name.split(' ')[0])
       .attr('text-anchor', 'middle')
-      .attr('dy', (d: any) => d.isChild ? '-0.15em' : '0.35em')
-      .attr('font-size', (d: any) => d.isChild ? '9px' : '11px')
+      .attr('dy', d => d.isChild ? '-0.15em' : '0.35em')
+      .attr('font-size', d => d.isChild ? '9px' : '11px')
       .attr('font-weight', '600')
-      .attr('fill', (d: any) => d.isChild ? '#2D2D2D' : '#fff')
+      .attr('fill', d => d.isChild ? '#2D2D2D' : '#fff')
       .attr('pointer-events', 'none')
 
     // Child emoji
-    nodeEl.filter((d: any) => d.isChild)
+    nodeEl.filter(d => d.isChild)
       .append('text')
       .text('👶')
       .attr('text-anchor', 'middle')
@@ -164,20 +175,20 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
 
     const redrawLinks = (rels: GuestRelationship[]) => {
       linkGroup.selectAll('*').remove()
-      const links = rels.map(r => ({
+      const links: GraphLink[] = rels.map(r => ({
         source: r.guest_a_key,
         target: r.guest_b_key,
         type: r.type,
         id: r.id,
       }))
-      ;(simulation.force('link') as d3.ForceLink<any, any>).links(links)
-      linkGroup.selectAll<SVGLineElement, any>('line')
-        .data(links, (d: any) => d.id)
+      ;(simulation.force('link') as d3.ForceLink<GraphNode, GraphLink>).links(links)
+      linkGroup.selectAll<SVGLineElement, GraphLink>('line')
+        .data(links, d => d.id)
         .enter().append('line')
         .attr('stroke-width', 2.5)
         .attr('stroke-opacity', 0.75)
-        .attr('stroke', (d: any) => REL_COLORS[d.type as RelationshipType])
-        .attr('stroke-dasharray', (d: any) => d.type === 'APART' ? '6,3' : 'none')
+        .attr('stroke', d => REL_COLORS[d.type])
+        .attr('stroke-dasharray', d => d.type === 'APART' ? '6,3' : 'none')
       simulation.alpha(0.25).restart()
     }
     redrawLinksRef.current = redrawLinks
@@ -194,9 +205,9 @@ export function RelationshipGraph({ guests, relationships, weddingId, onRelation
   // Selection highlight
   useEffect(() => {
     if (!svgRef.current) return
-    d3.select(svgRef.current).selectAll<SVGCircleElement, any>('g.node circle')
-      .attr('stroke', (d: any) => d.id === selectedKey ? '#FF6B35' : '#2D2D2D')
-      .attr('stroke-width', (d: any) => d.id === selectedKey ? 4 : 1.5)
+    d3.select(svgRef.current).selectAll<SVGCircleElement, GraphNode>('g.node circle')
+      .attr('stroke', d => d.id === selectedKey ? '#FF6B35' : '#2D2D2D')
+      .attr('stroke-width', d => d.id === selectedKey ? 4 : 1.5)
   }, [selectedKey])
 
   const selectedGuest = guests.find(g => g.key === selectedKey)
