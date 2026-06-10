@@ -248,27 +248,25 @@ export function GuestListManager({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor: g.rsvp_response
-                            ? g.rsvp_response.attendance ? '#4CAF50' : '#EF5350'
-                            : '#C9A84C',
-                        }}
-                      />
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: '#2D2D2D' }}>{g.name}</p>
-                        {(g.email || g.phone) && (
-                          <p className="text-xs" style={{ color: '#888' }}>
-                            {[g.email, g.phone].filter(Boolean).join(' · ')}
-                          </p>
-                        )}
-                      </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: g.rsvp_response
+                          ? g.rsvp_response.attendance ? '#4CAF50' : '#EF5350'
+                          : '#C9A84C',
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: '#2D2D2D' }}>{g.name}</p>
+                      {(g.email || g.phone) && (
+                        <p className="text-xs truncate" style={{ color: '#888' }}>
+                          {[g.email, g.phone].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs hidden sm:inline" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
                         {g.rsvp_response ? (g.rsvp_response.attendance ? '✅ Confirmado' : '❌ No asiste') : '⏳ Pendiente'}
                       </span>
                       <button

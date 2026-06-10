@@ -79,7 +79,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
       {/* Basic info */}
       <div className={sectionClass} style={sectionStyle}>
         <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Información básica</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} style={labelStyle}>Novio/a 1</label>
             <input value={form.partner_1} onChange={(e) => set('partner_1', e.target.value)}
@@ -91,7 +91,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
               className={inputClass} style={inputStyle} placeholder="María" />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} style={labelStyle}>Fecha de boda</label>
             <input type="date" value={form.wedding_date} onChange={(e) => set('wedding_date', e.target.value)}
@@ -117,7 +117,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
       {/* Ceremony */}
       <div className={sectionClass} style={sectionStyle}>
         <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Ceremonia</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} style={labelStyle}>Hora</label>
             <input type="time" value={form.ceremony_time} onChange={(e) => set('ceremony_time', e.target.value)}
@@ -157,7 +157,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
       {!form.same_venue && (
         <div className={sectionClass} style={sectionStyle}>
           <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Convite / Recepción</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass} style={labelStyle}>Hora</label>
               <input type="time" value={form.reception_time} onChange={(e) => set('reception_time', e.target.value)}
@@ -208,7 +208,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
             rows={3} className={inputClass} style={{ ...inputStyle, resize: 'none' }}
             placeholder="Vuestra presencia es el mejor regalo. Si queréis hacernos una aportación..." />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} style={labelStyle}>Titular</label>
             <input value={form.bank_holder} onChange={(e) => set('bank_holder', e.target.value)}
@@ -231,12 +231,11 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
       {/* RSVP settings */}
       <div className={sectionClass} style={sectionStyle}>
         <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Configuración del formulario</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass} style={labelStyle}>Fecha límite de confirmación</label>
-            <input type="date" value={form.rsvp_deadline} onChange={(e) => set('rsvp_deadline', e.target.value)}
-              className={inputClass} style={inputStyle} />
-          </div>
+        <div>
+          <label className={labelClass} style={labelStyle}>Fecha límite de confirmación</label>
+          <input type="date" value={form.rsvp_deadline} onChange={(e) => set('rsvp_deadline', e.target.value)}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-amber-300"
+            style={inputStyle} />
         </div>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={form.bus_enabled}

@@ -68,22 +68,24 @@ export function MenuManager({ weddingId, initialOptions }: { weddingId: string; 
           Añade las opciones de menú que ofrecéis. Cada invitado elegirá la suya individualmente.
         </p>
 
-        <div className="flex gap-2">
-          <input
-            value={emoji}
-            onChange={(e) => setEmoji(e.target.value)}
-            className={inputClass}
-            style={{ ...inputStyle, width: 60, textAlign: 'center', fontSize: 20 }}
-            maxLength={2}
-          />
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ej: Carne, Pescado, Vegetariano..."
-            className={inputClass}
-            style={{ ...inputStyle, flex: 1 }}
-            onKeyDown={(e) => e.key === 'Enter' && addOption()}
-          />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 flex-1">
+            <input
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+              className={inputClass}
+              style={{ ...inputStyle, width: 60, flexShrink: 0, textAlign: 'center', fontSize: 20 }}
+              maxLength={2}
+            />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej: Carne, Pescado, Vegetariano..."
+              className={inputClass}
+              style={{ ...inputStyle, flex: 1 }}
+              onKeyDown={(e) => e.key === 'Enter' && addOption()}
+            />
+          </div>
           <button
             onClick={addOption}
             disabled={saving || !name.trim()}

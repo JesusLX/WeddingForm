@@ -168,19 +168,19 @@ export function TimelineManager({
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-sm" style={{ color: '#C9A84C', minWidth: 45 }}>{ev.time}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="font-semibold text-sm flex-shrink-0" style={{ color: '#C9A84C', minWidth: 45 }}>{ev.time}</span>
                       {ev.icon && (
                         ev.icon.startsWith('http') || ev.icon.startsWith('/') || ev.icon.startsWith('data:') ? (
-                          <img src={ev.icon} alt="" className="w-6 h-6 object-contain rounded" />
+                          <img src={ev.icon} alt="" className="w-6 h-6 object-contain rounded flex-shrink-0" />
                         ) : (
-                          <span className="text-xl">{ev.icon}</span>
+                          <span className="text-xl flex-shrink-0">{ev.icon}</span>
                         )
                       )}
-                      <span className="text-sm" style={{ color: '#2D2D2D' }}>{ev.label}</span>
+                      <span className="text-sm truncate" style={{ color: '#2D2D2D' }}>{ev.label}</span>
                     </div>
-                    <div className="flex gap-2 ml-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={() => startEdit(i)}
                         className="text-xs px-2 py-1 rounded-lg hover:opacity-70"
