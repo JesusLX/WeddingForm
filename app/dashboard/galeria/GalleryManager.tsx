@@ -140,6 +140,20 @@ export function GalleryManager({
     setDragOverIndex(null)
   }
 
+  async function moveImage(i: number, direction: 'prev' | 'next') {
+    const j = direction === 'prev' ? i - 1 : i + 1
+    if (j < 0 || j >= images.length) return
+    const previous = images
+    const reordered = [...images]
+    ;[reordered[i], reordered[j]] = [reordered[j], reordered[i]]
+    setImages(reordered)
+    const { error } = await supabase.from('weddings').update({ gallery_image_urls: reordered }).eq('id', weddingId)
+    if (error) {
+      setImages(previous)
+      showMsg(setGalleryMsg, `Error al reordenar: ${error.message}`)
+    }
+  }
+
   const msgStyle = (msg: string) => ({
     color: msg.startsWith('Error') ? '#EF5350' : '#4CAF50',
   })
@@ -236,7 +250,7 @@ export function GalleryManager({
         ) : (
           <>
             <p className="text-xs" style={{ color: '#999' }}>
-              Arrastra las fotos para cambiar el orden.
+              Arrastra para reordenar (escritorio) o usa las flechas ← → (móvil).
             </p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {images.map((url, i) => (
@@ -254,6 +268,7 @@ export function GalleryManager({
                   }}
                 >
                   <img src={url} className="w-full h-full object-cover pointer-events-none" alt={`Foto ${i + 1}`} />
+                  {/* Delete */}
                   <button
                     onClick={() => removeImage(url)}
                     className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs"
@@ -262,6 +277,29 @@ export function GalleryManager({
                   >
                     ✕
                   </button>
+                  {/* Reorder arrows */}
+                  <div className="absolute bottom-1 left-1 flex gap-0.5">
+                    {i > 0 && (
+                      <button
+                        onClick={() => moveImage(i, 'prev')}
+                        className="w-6 h-6 rounded flex items-center justify-center text-xs"
+                        style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: 'white' }}
+                        title="Mover a la izquierda"
+                      >
+                        ←
+                      </button>
+                    )}
+                    {i < images.length - 1 && (
+                      <button
+                        onClick={() => moveImage(i, 'next')}
+                        className="w-6 h-6 rounded flex items-center justify-center text-xs"
+                        style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: 'white' }}
+                        title="Mover a la derecha"
+                      >
+                        →
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
