@@ -59,6 +59,7 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
   const [adultNames, setAdultNames] = useState<string[]>([''])
   const [adultAllergies, setAdultAllergies] = useState<string[]>([''])
   const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string; allergies: string }[]>([])
+  const [needsBus, setNeedsBus] = useState<'' | 'yes' | 'no'>('')
   const [busOutbound, setBusOutbound] = useState('')
   const [busReturn, setBusReturn] = useState('')
   const [hp, setHp] = useState('')
@@ -152,8 +153,8 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
           children_menus: isAttending && bringsChildren
             ? childrenData.map(c => c.wantsMenu ? (c.menuId || null) : null)
             : [],
-          bus_outbound: isAttending ? (busOutbound || null) : null,
-          bus_return: isAttending ? (busReturn || null) : null,
+          bus_outbound: isAttending && needsBus === 'yes' ? (busOutbound || null) : null,
+          bus_return: isAttending && needsBus === 'yes' ? (busReturn || null) : null,
           allergies: isAttending ? buildAllergies() : null,
           hp_website: hp,
           submitted_ms: Date.now() - loadedAt.current,
@@ -390,56 +391,67 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
           {/* Bus */}
           {(outboundRoutes.length > 0 || returnRoutes.length > 0) && (
             <div className="space-y-4">
-              <label className={labelClass} style={labelStyle}>🚌 Autobús</label>
-              {outboundRoutes.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium mb-2 uppercase tracking-wide" style={{ color: '#888' }}>Ida</p>
-                  <div className="space-y-2">
-                    <label
-                      className={busOptionClass}
-                      style={{ borderColor: busOutbound === '' ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busOutbound === '' ? 'var(--w-bg)' : 'white' }}
-                    >
-                      <input type="radio" checked={busOutbound === ''} onChange={() => setBusOutbound('')} className="sr-only" />
-                      <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>No necesito autobús de ida</span>
-                    </label>
-                    {outboundRoutes.map(route => (
-                      <label
-                        key={route.id}
-                        className={busOptionClass}
-                        style={{ borderColor: busOutbound === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busOutbound === route.label ? 'var(--w-bg)' : 'white' }}
-                      >
-                        <input type="radio" checked={busOutbound === route.label} onChange={() => setBusOutbound(route.label)} className="sr-only" />
-                        <span className="text-lg">🚌</span>
-                        <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
-                      </label>
-                    ))}
-                  </div>
+              <div>
+                <label className={labelClass} style={labelStyle}>🚌 ¿Necesitas autobús?</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label
+                    className={radioClass}
+                    style={{ borderColor: needsBus === 'yes' ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: needsBus === 'yes' ? 'var(--w-bg)' : 'white' }}
+                  >
+                    <input type="radio" checked={needsBus === 'yes'} onChange={() => setNeedsBus('yes')} className="sr-only" />
+                    <span className="text-lg">🚌</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>Sí, necesito</span>
+                  </label>
+                  <label
+                    className={radioClass}
+                    style={{ borderColor: needsBus === 'no' ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: needsBus === 'no' ? 'var(--w-bg)' : 'white' }}
+                  >
+                    <input type="radio" checked={needsBus === 'no'} onChange={() => { setNeedsBus('no'); setBusOutbound(''); setBusReturn('') }} className="sr-only" />
+                    <span className="text-lg">🚶</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>No, gracias</span>
+                  </label>
                 </div>
-              )}
-              {returnRoutes.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium mb-2 uppercase tracking-wide" style={{ color: '#888' }}>Vuelta</p>
-                  <div className="space-y-2">
-                    <label
-                      className={busOptionClass}
-                      style={{ borderColor: busReturn === '' ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busReturn === '' ? 'var(--w-bg)' : 'white' }}
-                    >
-                      <input type="radio" checked={busReturn === ''} onChange={() => setBusReturn('')} className="sr-only" />
-                      <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>No necesito autobús de vuelta</span>
-                    </label>
-                    {returnRoutes.map(route => (
-                      <label
-                        key={route.id}
-                        className={busOptionClass}
-                        style={{ borderColor: busReturn === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busReturn === route.label ? 'var(--w-bg)' : 'white' }}
-                      >
-                        <input type="radio" checked={busReturn === route.label} onChange={() => setBusReturn(route.label)} className="sr-only" />
-                        <span className="text-lg">🚌</span>
-                        <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+              </div>
+
+              {needsBus === 'yes' && (
+                <>
+                  {outboundRoutes.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium mb-2 uppercase tracking-wide" style={{ color: '#888' }}>Ida</p>
+                      <div className="space-y-2">
+                        {outboundRoutes.map(route => (
+                          <label
+                            key={route.id}
+                            className={busOptionClass}
+                            style={{ borderColor: busOutbound === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busOutbound === route.label ? 'var(--w-bg)' : 'white' }}
+                          >
+                            <input type="radio" checked={busOutbound === route.label} onChange={() => setBusOutbound(route.label)} className="sr-only" />
+                            <span className="text-lg">🚌</span>
+                            <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {returnRoutes.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium mb-2 uppercase tracking-wide" style={{ color: '#888' }}>Vuelta</p>
+                      <div className="space-y-2">
+                        {returnRoutes.map(route => (
+                          <label
+                            key={route.id}
+                            className={busOptionClass}
+                            style={{ borderColor: busReturn === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busReturn === route.label ? 'var(--w-bg)' : 'white' }}
+                          >
+                            <input type="radio" checked={busReturn === route.label} onChange={() => setBusReturn(route.label)} className="sr-only" />
+                            <span className="text-lg">🚌</span>
+                            <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

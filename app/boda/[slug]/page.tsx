@@ -95,11 +95,14 @@ export default async function WeddingPage({ params }: Props) {
     </footer>
   )
 
+  const validHex = (c: string | null | undefined, fallback: string) =>
+    c && /^#[0-9A-Fa-f]{6}$/.test(c) ? c : fallback
+
   const paletteVars = {
-    '--w-bg': wedding.color_bg ?? '#FAF7F4',
-    '--w-accent': wedding.color_accent ?? '#F4D7D7',
-    '--w-primary': wedding.color_primary ?? '#C9A84C',
-    '--w-dark': wedding.color_dark ?? '#2D2D2D',
+    '--w-bg': validHex(wedding.color_bg, '#FAF7F4'),
+    '--w-accent': validHex(wedding.color_accent, '#F4D7D7'),
+    '--w-primary': validHex(wedding.color_primary, '#C9A84C'),
+    '--w-dark': validHex(wedding.color_dark, '#2D2D2D'),
   } as React.CSSProperties
 
   return (

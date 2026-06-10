@@ -22,6 +22,7 @@ export function GalleryManager({
   const fileRef = useRef<HTMLInputElement>(null)
   const coverRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
 
   function showMsg(setter: (m: string) => void, msg: string) {
     setter(msg)
@@ -31,6 +32,10 @@ export function GalleryManager({
   async function uploadCover(files: FileList) {
     const file = files[0]
     if (!file) return
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      showMsg(setCoverMsg, 'Solo se permiten imágenes (JPG, PNG, WebP, GIF)')
+      return
+    }
     setUploadingCover(true)
     const ext = file.name.split('.').pop()
     const path = `${weddingId}/cover-${Date.now()}.${ext}`
@@ -51,6 +56,10 @@ export function GalleryManager({
     setUploadingGallery(true)
     const uploadedUrls: string[] = []
     for (const file of Array.from(files)) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        showMsg(setGalleryMsg, `${file.name}: tipo no permitido`)
+        continue
+      }
       const ext = file.name.split('.').pop()
       const path = `${weddingId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage.from('wedding-photos').upload(path, file)

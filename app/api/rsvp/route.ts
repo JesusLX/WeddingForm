@@ -9,12 +9,12 @@ const schema = z.object({
   guest_name: z.string().min(2).max(200),
   attendance: z.enum(['yes', 'no']),
   adults_count: z.coerce.number().min(1).max(20).optional(),
-  adult_names: z.array(z.string()).optional(),
-  adult_menus: z.array(z.string()).optional(),
+  adult_names: z.array(z.string()).max(20).optional(),
+  adult_menus: z.array(z.string()).max(20).optional(),
   has_children: z.enum(['yes', 'no']).optional(),
   children_count: z.coerce.number().min(0).max(20).optional(),
-  children_names: z.array(z.string()).optional(),
-  children_menus: z.array(z.string().nullable()).optional(),
+  children_names: z.array(z.string()).max(20).optional(),
+  children_menus: z.array(z.string().nullable()).max(20).optional(),
   bus_outbound: z.string().max(200).optional(),
   bus_return: z.string().max(200).optional(),
   allergies: z.string().max(500).optional(),
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 })
+      return NextResponse.json({ error: 'Datos no válidos' }, { status: 400 })
     }
     console.error(err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

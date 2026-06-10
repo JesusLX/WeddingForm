@@ -54,7 +54,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
 
     let error
     if (wedding?.id) {
-      ;({ error } = await supabase.from('weddings').update(payload).eq('id', wedding.id))
+      ;({ error } = await supabase.from('weddings').update(payload).eq('id', wedding.id).eq('user_id', userId))
     } else {
       ;({ error } = await supabase.from('weddings').insert(payload))
     }
