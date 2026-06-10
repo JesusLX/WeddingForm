@@ -99,7 +99,7 @@ export function BusManager({ weddingId, initialRoutes }: { weddingId: string; in
                   </div>
                 ) : (
                   <>
-                    <span className="text-sm flex-1 min-w-0 truncate" style={{ color: '#2D2D2D' }}>🚌 {route.label}</span>
+                    <span className="text-sm flex-1" style={{ color: '#2D2D2D' }}>🚌 {route.label}</span>
                     <div className="flex gap-2 flex-shrink-0">
                       <button onClick={() => startEdit(route)} className="text-xs px-2 py-1 rounded-lg hover:opacity-70" style={{ color: '#C9A84C', backgroundColor: '#C9A84C22' }}>Editar</button>
                       <button onClick={() => deleteRoute(route.id)} className="text-xs px-2 py-1 rounded-lg hover:opacity-70" style={{ color: '#EF5350', backgroundColor: '#EF535022' }}>Eliminar</button>
