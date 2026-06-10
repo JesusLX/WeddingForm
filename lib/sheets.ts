@@ -1,5 +1,4 @@
 import { google } from 'googleapis'
-import type { BusOption } from './types'
 
 interface MenuRef {
   id: string
@@ -15,7 +14,8 @@ interface SheetData {
   has_children: boolean
   children_count: number
   children_menus: (string | null)[]
-  bus_option: BusOption
+  bus_outbound: string | null
+  bus_return: string | null
   allergies: string
   song_request: string
   message: string
@@ -46,13 +46,6 @@ export async function appendRsvpToSheet(
 
   const sheets = google.sheets({ version: 'v4', auth })
 
-  const busLabels: Record<BusOption, string> = {
-    none: 'No',
-    outbound: 'Solo ida',
-    return: 'Solo vuelta',
-    both: 'Ida y vuelta',
-  }
-
   const adultMenusText = data.attendance
     ? data.adult_menus.map((id, i) => `A${i + 1}: ${menuLabel(id, menuOptions)}`).join(' | ')
     : ''
@@ -69,7 +62,7 @@ export async function appendRsvpToSheet(
     data.has_children ? 'Sí' : 'No',
     data.has_children ? data.children_count.toString() : '0',
     childMenusText,
-    busLabels[data.bus_option],
+    [data.bus_outbound, data.bus_return].filter(Boolean).join(' · ') || 'No',
     data.allergies || '',
     data.song_request || '',
     data.message || '',

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { Wedding, MenuOption, BusOption } from '@/lib/types'
+import type { Wedding, MenuOption, BusRoute } from '@/lib/types'
 import { HoneypotField } from '@/components/HoneypotField'
 
 const schema = z.object({
@@ -21,14 +21,8 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 type Status = 'idle' | 'submitting' | 'success' | 'error'
 
-function busOptionFromCheckboxes(ida: boolean, vuelta: boolean): BusOption {
-  if (ida && vuelta) return 'both'
-  if (ida) return 'outbound'
-  if (vuelta) return 'return'
-  return 'none'
-}
-
 const radioClass = 'flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:border-amber-300 text-center'
+const busOptionClass = 'flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:border-amber-300'
 
 function MenuGrid({
   selectedId,
@@ -59,17 +53,20 @@ function MenuGrid({
   )
 }
 
-export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptions: MenuOption[] }) {
+export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding; menuOptions: MenuOption[]; busRoutes: BusRoute[] }) {
   const [status, setStatus] = useState<Status>('idle')
   const [adultMenus, setAdultMenus] = useState<string[]>([''])
   const [adultNames, setAdultNames] = useState<string[]>([''])
   const [adultAllergies, setAdultAllergies] = useState<string[]>([''])
   const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string; allergies: string }[]>([])
-  const [busIda, setBusIda] = useState(false)
-  const [busVuelta, setBusVuelta] = useState(false)
+  const [busOutbound, setBusOutbound] = useState('')
+  const [busReturn, setBusReturn] = useState('')
   const [hp, setHp] = useState('')
   const loadedAt = useRef(0)
   useEffect(() => { loadedAt.current = Date.now() }, [])
+
+  const outboundRoutes = busRoutes.filter(r => r.direction === 'outbound').sort((a, b) => a.sort_order - b.sort_order)
+  const returnRoutes = busRoutes.filter(r => r.direction === 'return').sort((a, b) => a.sort_order - b.sort_order)
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -103,7 +100,6 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
       return arr.slice(0, adultsCount)
     })
   }, [adultsCount])
-
 
   useEffect(() => {
     setChildrenData(prev => {
@@ -156,7 +152,8 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
           children_menus: isAttending && bringsChildren
             ? childrenData.map(c => c.wantsMenu ? (c.menuId || null) : null)
             : [],
-          bus_option: isAttending ? busOptionFromCheckboxes(busIda, busVuelta) : 'none',
+          bus_outbound: isAttending ? (busOutbound || null) : null,
+          bus_return: isAttending ? (busReturn || null) : null,
           allergies: isAttending ? buildAllergies() : null,
           hp_website: hp,
           submitted_ms: Date.now() - loadedAt.current,
@@ -273,7 +270,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                     <input
                       value={adultNames[i] ?? ''}
                       onChange={e => setAdultNames(prev => prev.map((n, idx) => idx === i ? e.target.value : n))}
-                      placeholder="Nombre completo"
+                      placeholder="Nombre completo *"
                       className={inputClass}
                       style={inputStyle}
                     />
@@ -288,7 +285,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                   <input
                     value={adultAllergies[i] ?? ''}
                     onChange={e => setAdultAllergies(prev => prev.map((a, idx) => idx === i ? e.target.value : a))}
-                    placeholder="Alergias o restricciones (opcional)"
+                    placeholder="Alergias o restricciones"
                     className={inputClass}
                     style={inputStyle}
                   />
@@ -315,7 +312,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                 <input
                   value={adultAllergies[0] ?? ''}
                   onChange={e => setAdultAllergies([e.target.value])}
-                  placeholder="Ej: gluten, lactosa... (opcional)"
+                  placeholder="Ej: gluten, lactosa..."
                   className={inputClass}
                   style={inputStyle}
                 />
@@ -335,7 +332,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
           {bringsChildren && (
             <>
               <div>
-                <label className={labelClass} style={labelStyle}>¿Cuántos niños?</label>
+                <label className={labelClass} style={labelStyle}>¿Cuántos niños? *</label>
                 <input
                   {...register('children_count', { valueAsNumber: true })}
                   type="number" min={1} max={20}
@@ -353,7 +350,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                       <input
                         value={childrenData[i]?.name ?? ''}
                         onChange={e => setChildrenData(prev => prev.map((c, idx) => idx === i ? { ...c, name: e.target.value } : c))}
-                        placeholder="Nombre completo"
+                        placeholder="Nombre completo *"
                         className={inputClass}
                         style={inputStyle}
                       />
@@ -379,7 +376,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
                       <input
                         value={childrenData[i]?.allergies ?? ''}
                         onChange={e => setChildrenData(prev => prev.map((c, idx) => idx === i ? { ...c, allergies: e.target.value } : c))}
-                        placeholder="Alergias o restricciones (opcional)"
+                        placeholder="Alergias o restricciones"
                         className={inputClass}
                         style={inputStyle}
                       />
@@ -391,31 +388,59 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
           )}
 
           {/* Bus */}
-          {wedding.bus_enabled && (
-            <div>
-              <label className={labelClass} style={labelStyle}>¿Necesitas autobús?</label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Ida', checked: busIda, onChange: setBusIda },
-                  { label: 'Vuelta', checked: busVuelta, onChange: setBusVuelta },
-                ].map(({ label, checked, onChange }) => (
-                  <label
-                    key={label}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:border-amber-300"
-                    style={{ borderColor: checked ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: checked ? 'var(--w-bg)' : 'white' }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={e => onChange(e.target.checked)}
-                      className="w-4 h-4 rounded"
-                      style={{ accentColor: 'var(--w-primary)' }}
-                    />
-                    <span className="text-lg">🚌</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{label}</span>
-                  </label>
-                ))}
-              </div>
+          {(outboundRoutes.length > 0 || returnRoutes.length > 0) && (
+            <div className="space-y-4">
+              <label className={labelClass} style={labelStyle}>🚌 Autobús</label>
+              {outboundRoutes.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium mb-2 uppercase tracking-wide" style={{ color: '#888' }}>Ida</p>
+                  <div className="space-y-2">
+                    <label
+                      className={busOptionClass}
+                      style={{ borderColor: busOutbound === '' ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busOutbound === '' ? 'var(--w-bg)' : 'white' }}
+                    >
+                      <input type="radio" checked={busOutbound === ''} onChange={() => setBusOutbound('')} className="sr-only" />
+                      <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>No necesito autobús de ida</span>
+                    </label>
+                    {outboundRoutes.map(route => (
+                      <label
+                        key={route.id}
+                        className={busOptionClass}
+                        style={{ borderColor: busOutbound === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busOutbound === route.label ? 'var(--w-bg)' : 'white' }}
+                      >
+                        <input type="radio" checked={busOutbound === route.label} onChange={() => setBusOutbound(route.label)} className="sr-only" />
+                        <span className="text-lg">🚌</span>
+                        <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {returnRoutes.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium mb-2 uppercase tracking-wide" style={{ color: '#888' }}>Vuelta</p>
+                  <div className="space-y-2">
+                    <label
+                      className={busOptionClass}
+                      style={{ borderColor: busReturn === '' ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busReturn === '' ? 'var(--w-bg)' : 'white' }}
+                    >
+                      <input type="radio" checked={busReturn === ''} onChange={() => setBusReturn('')} className="sr-only" />
+                      <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>No necesito autobús de vuelta</span>
+                    </label>
+                    {returnRoutes.map(route => (
+                      <label
+                        key={route.id}
+                        className={busOptionClass}
+                        style={{ borderColor: busReturn === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busReturn === route.label ? 'var(--w-bg)' : 'white' }}
+                      >
+                        <input type="radio" checked={busReturn === route.label} onChange={() => setBusReturn(route.label)} className="sr-only" />
+                        <span className="text-lg">🚌</span>
+                        <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -429,7 +454,7 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
 
       {/* Message */}
       <div>
-        <label className={labelClass} style={labelStyle}>Mensaje para los novios (opcional)</label>
+        <label className={labelClass} style={labelStyle}>Mensaje para los novios</label>
         <textarea
           {...register('message')}
           rows={3}

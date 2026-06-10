@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Resumen', icon: '📊' },
   { href: '/dashboard/configurar', label: 'Configurar', icon: '⚙️' },
   { href: '/dashboard/menu', label: 'Menú', icon: '🍽️' },
+  { href: '/dashboard/autobus', label: 'Autobús', icon: '🚌' },
   { href: '/dashboard/timeline', label: 'Programa', icon: '🕐' },
   { href: '/dashboard/galeria', label: 'Galería', icon: '🖼️' },
   { href: '/dashboard/paleta', label: 'Paleta', icon: '🎨' },

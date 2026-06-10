@@ -32,7 +32,6 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
     bank_holder: wedding?.bank_holder ?? '',
     bank_concept: wedding?.bank_concept ?? '',
     gifts_text: wedding?.gifts_text ?? '',
-    bus_enabled: wedding?.bus_enabled ?? true,
     is_published: wedding?.is_published ?? false,
   })
 
@@ -237,12 +236,6 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-amber-300"
             style={inputStyle} />
         </div>
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" checked={form.bus_enabled}
-            onChange={(e) => set('bus_enabled', e.target.checked)}
-            className="w-4 h-4 rounded" style={{ accentColor: '#C9A84C' }} />
-          <span className="text-sm" style={{ color: '#2D2D2D' }}>Preguntar por autobús</span>
-        </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={form.is_published}
             onChange={(e) => set('is_published', e.target.checked)}

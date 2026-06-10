@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import type React from 'react'
-import type { Wedding } from '@/lib/types'
+import type { Wedding, BusRoute } from '@/lib/types'
 import { HeroSection } from './components/HeroSection'
 import { OurStorySection } from './components/OurStorySection'
 import { EventDetailsSection } from './components/EventDetailsSection'
@@ -82,11 +82,10 @@ export default async function WeddingPage({ params }: Props) {
 
   if (!wedding) notFound()
 
-  const { data: menuOptions } = await supabase
-    .from('menu_options')
-    .select('*')
-    .eq('wedding_id', wedding.id)
-    .order('sort_order')
+  const [{ data: menuOptions }, { data: busRoutes }] = await Promise.all([
+    supabase.from('menu_options').select('*').eq('wedding_id', wedding.id).order('sort_order'),
+    supabase.from('bus_routes').select('id, direction, label, sort_order').eq('wedding_id', wedding.id).order('sort_order'),
+  ])
 
   const footer = (
     <footer className="py-8 text-center text-sm" style={{ color: '#C9A84C', backgroundColor: '#2D2D2D' }}>
@@ -112,7 +111,7 @@ export default async function WeddingPage({ params }: Props) {
       <GallerySection wedding={wedding} />
       <DressCodeSection wedding={wedding} />
       <SpotifySection wedding={wedding} />
-      <RSVPSection wedding={wedding} menuOptions={menuOptions ?? []} />
+      <RSVPSection wedding={wedding} menuOptions={menuOptions ?? []} busRoutes={(busRoutes ?? []) as BusRoute[]} />
       <BankInfoSection wedding={wedding} />
       <FAQSection wedding={wedding} />
       {footer}

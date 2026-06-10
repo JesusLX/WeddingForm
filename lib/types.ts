@@ -70,6 +70,14 @@ export const BUS_LABELS: Record<BusOption, string> = {
   both: 'Ida y vuelta',
 }
 
+export interface BusRoute {
+  id: string
+  wedding_id: string
+  direction: 'outbound' | 'return'
+  label: string
+  sort_order: number
+}
+
 export interface RsvpResponse {
   id: string
   wedding_id: string
@@ -83,6 +91,8 @@ export interface RsvpResponse {
   children_names: string[]
   children_menus: (string | null)[]
   bus_option: BusOption
+  bus_outbound: string | null
+  bus_return: string | null
   allergies: string | null
   song_request: string | null
   message: string | null

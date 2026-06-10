@@ -184,6 +184,26 @@ ALTER TABLE weddings ADD COLUMN IF NOT EXISTS color_primary TEXT DEFAULT '#C9A84
 ALTER TABLE weddings ADD COLUMN IF NOT EXISTS color_dark TEXT DEFAULT '#2D2D2D';
 
 -- ============================================================
+-- BUS ROUTES (configurable per-wedding bus options)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS bus_routes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  direction TEXT NOT NULL CHECK (direction IN ('outbound', 'return')),
+  label TEXT NOT NULL,
+  sort_order INT DEFAULT 0
+);
+ALTER TABLE bus_routes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "owner_all" ON bus_routes FOR ALL
+  USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+CREATE POLICY "public_read" ON bus_routes FOR SELECT
+  USING (wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
+
+-- Per-person bus selections on rsvp_responses
+ALTER TABLE rsvp_responses ADD COLUMN IF NOT EXISTS bus_outbound TEXT;
+ALTER TABLE rsvp_responses ADD COLUMN IF NOT EXISTS bus_return TEXT;
+
+-- ============================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_updated_at()

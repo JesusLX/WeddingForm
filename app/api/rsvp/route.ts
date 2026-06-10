@@ -15,7 +15,8 @@ const schema = z.object({
   children_count: z.coerce.number().min(0).max(20).optional(),
   children_names: z.array(z.string()).optional(),
   children_menus: z.array(z.string().nullable()).optional(),
-  bus_option: z.enum(['none', 'outbound', 'return', 'both']).optional(),
+  bus_outbound: z.string().max(200).optional(),
+  bus_return: z.string().max(200).optional(),
   allergies: z.string().max(500).optional(),
   song_request: z.string().max(200).optional(),
   message: z.string().max(1000).optional(),
@@ -80,6 +81,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate bus route selections
+    if (attendance && (data.bus_outbound || data.bus_return)) {
+      const { data: routes } = await supabase
+        .from('bus_routes')
+        .select('label, direction')
+        .eq('wedding_id', data.wedding_id)
+      const validOutbound = new Set(routes?.filter(r => r.direction === 'outbound').map(r => r.label) ?? [])
+      const validReturn = new Set(routes?.filter(r => r.direction === 'return').map(r => r.label) ?? [])
+      if (data.bus_outbound && !validOutbound.has(data.bus_outbound)) {
+        return NextResponse.json({ error: 'Opción de autobús de ida no válida' }, { status: 400 })
+      }
+      if (data.bus_return && !validReturn.has(data.bus_return)) {
+        return NextResponse.json({ error: 'Opción de autobús de vuelta no válida' }, { status: 400 })
+      }
+    }
+
     const { data: response, error: insertError } = await supabase
       .from('rsvp_responses')
       .insert({
@@ -93,7 +110,8 @@ export async function POST(req: NextRequest) {
         children_count: attendance && hasChildren ? (data.children_count ?? 0) : 0,
         children_names: attendance && hasChildren ? (data.children_names ?? []).map(n => n.trim()) : [],
         children_menus: attendance && hasChildren ? (data.children_menus ?? []) : [],
-        bus_option: attendance ? (data.bus_option ?? 'none') : 'none',
+        bus_outbound: attendance ? (data.bus_outbound || null) : null,
+        bus_return: attendance ? (data.bus_return || null) : null,
         allergies: data.allergies || null,
         song_request: data.song_request || null,
         message: data.message || null,
@@ -150,7 +168,8 @@ export async function POST(req: NextRequest) {
         has_children: hasChildren,
         children_count: data.children_count ?? 0,
         children_menus: data.children_menus ?? [],
-        bus_option: data.bus_option ?? 'none',
+        bus_outbound: data.bus_outbound || null,
+        bus_return: data.bus_return || null,
         allergies: data.allergies ?? '',
         song_request: data.song_request ?? '',
         message: data.message ?? '',

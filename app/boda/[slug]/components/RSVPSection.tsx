@@ -1,13 +1,15 @@
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RSVPForm } from './RSVPForm'
-import type { Wedding, MenuOption } from '@/lib/types'
+import type { Wedding, MenuOption, BusRoute } from '@/lib/types'
 
 export function RSVPSection({
   wedding,
   menuOptions,
+  busRoutes,
 }: {
   wedding: Wedding
   menuOptions: MenuOption[]
+  busRoutes: BusRoute[]
 }) {
   return (
     <section id="rsvp" className="py-24 px-6 bg-white">
@@ -35,7 +37,7 @@ export function RSVPSection({
             className="rounded-2xl p-6 md:p-8 shadow-sm"
             style={{ border: '1px solid var(--w-accent)', backgroundColor: 'var(--w-bg)' }}
           >
-            <RSVPForm wedding={wedding} menuOptions={menuOptions} />
+            <RSVPForm wedding={wedding} menuOptions={menuOptions} busRoutes={busRoutes} />
           </div>
         </ScrollReveal>
       </div>

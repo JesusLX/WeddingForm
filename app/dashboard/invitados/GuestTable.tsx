@@ -42,6 +42,8 @@ interface Response {
   children_names: string[]
   children_menus: (string | null)[]
   bus_option: string
+  bus_outbound: string | null
+  bus_return: string | null
   allergies: string | null
   song_request: string | null
   message: string | null
@@ -60,6 +62,8 @@ interface PersonRow {
   groupSize: number
   attendance: boolean
   busOption: string
+  busOutbound: string | null
+  busReturn: string | null
   allergies: string | null
   songRequest: string | null
   message: string | null
@@ -80,6 +84,7 @@ function flattenResponses(responses: Response[]): PersonRow[] {
     const groupSize = r.adults_count + (r.has_children ? r.children_count : 0)
     const shared = {
       rsvpId: r.id, attendance: r.attendance, busOption: r.bus_option,
+      busOutbound: r.bus_outbound, busReturn: r.bus_return,
       allergies: r.allergies, songRequest: r.song_request, message: r.message,
       submittedAt: r.submitted_at, groupSize,
     }
@@ -245,7 +250,7 @@ export function GuestTable({
       row.attendance ? 'Sí' : 'No',
       row.isChild ? 'Niño' : 'Adulto',
       menuLabel(row.menu, menuOptions),
-      row.isGroupFirst ? (busLabels[row.busOption] ?? row.busOption) : '',
+      row.isGroupFirst ? (row.busOutbound || row.busReturn ? [row.busOutbound, row.busReturn].filter(Boolean).join(' · ') : (busLabels[row.busOption] ?? row.busOption)) : '',
       row.isGroupFirst ? (row.allergies ?? '') : '',
       row.isGroupFirst ? (row.songRequest ?? '') : '',
       row.isGroupFirst ? (row.message ?? '') : '',
@@ -381,7 +386,11 @@ export function GuestTable({
                       </td>
                       {/* Bus — only first of group */}
                       <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: '#555' }}>
-                        {row.isGroupFirst ? (busLabels[row.busOption] ?? '—') : null}
+                        {row.isGroupFirst ? (
+                          row.busOutbound || row.busReturn
+                            ? [row.busOutbound, row.busReturn].filter(Boolean).join(' · ')
+                            : (busLabels[row.busOption] ?? '—')
+                        ) : null}
                       </td>
                       {/* Alergias — only first of group */}
                       <td className="px-4 py-2.5 max-w-[130px] truncate" style={{ color: '#555' }} title={row.isGroupFirst ? (row.allergies ?? '') : ''}>
