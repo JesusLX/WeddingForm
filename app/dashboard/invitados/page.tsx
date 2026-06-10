@@ -17,7 +17,7 @@ export default async function InvitadosPage() {
       .eq('wedding_id', wedding.id),
     supabase
       .from('expected_guests')
-      .select('id, name, rsvp_response_id')
+      .select('id, name, rsvp_response_id, guest_key')
       .eq('wedding_id', wedding.id)
       .order('name'),
   ])

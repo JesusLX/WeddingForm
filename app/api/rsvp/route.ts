@@ -107,18 +107,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (response) {
-      // Link the submitter and all named adults to their expected_guest records
-      const namesToLink = [
-        data.guest_name,
-        ...(data.adult_names ?? []).map(n => n.trim()).filter(Boolean),
-      ]
-      for (const name of namesToLink) {
+      // Auto-link adults by name, storing the per-person guest_key
+      const adultNames = (data.adult_names?.length ? data.adult_names : [data.guest_name])
+        .map((n: string) => n?.trim()).filter(Boolean)
+      for (let i = 0; i < adultNames.length; i++) {
         await supabase
           .from('expected_guests')
-          .update({ rsvp_response_id: response.id })
+          .update({ rsvp_response_id: response.id, guest_key: `${response.id}_adult_${i}` })
           .eq('wedding_id', data.wedding_id)
-          .ilike('name', name)
-          .is('rsvp_response_id', null)
+          .ilike('name', adultNames[i])
+          .is('guest_key', null)
+      }
+      // Auto-link children by name
+      const childNames = (data.children_names ?? []).map((n: string) => n?.trim()).filter(Boolean)
+      for (let i = 0; i < childNames.length; i++) {
+        await supabase
+          .from('expected_guests')
+          .update({ rsvp_response_id: response.id, guest_key: `${response.id}_child_${i}` })
+          .eq('wedding_id', data.wedding_id)
+          .ilike('name', childNames[i])
+          .is('guest_key', null)
       }
     }
 

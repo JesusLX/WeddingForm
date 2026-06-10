@@ -96,6 +96,7 @@ export interface ExpectedGuest {
   email: string | null
   phone: string | null
   rsvp_response_id: string | null
+  guest_key: string | null
   created_at: string
   rsvp_response?: RsvpResponse
 }

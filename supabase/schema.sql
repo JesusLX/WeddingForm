@@ -103,6 +103,9 @@ ALTER TABLE expected_guests
   REFERENCES rsvp_responses(id)
   ON DELETE SET NULL;
 
+-- Per-person link: stores the guest_key (e.g. "{rsvpId}_adult_0") for individual linking
+ALTER TABLE expected_guests ADD COLUMN IF NOT EXISTS guest_key TEXT;
+
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================

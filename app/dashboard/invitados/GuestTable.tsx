@@ -8,7 +8,7 @@ const busLabels: Record<string, string> = {
 }
 
 interface MenuRef { id: string; name: string; emoji: string }
-interface GuestRef { id: string; name: string; rsvp_response_id: string | null }
+interface GuestRef { id: string; name: string; rsvp_response_id: string | null; guest_key: string | null }
 
 function nameSimilarity(a: string, b: string): number {
   const norm = (s: string) => s.toLowerCase().trim()
@@ -130,23 +130,23 @@ export function GuestTable({
     setTimeout(() => setErrorMsg(''), 5000)
   }
 
-  async function handleLink(rsvpId: string, guestId: string | null) {
+  async function handleLink(personKey: string, rsvpId: string, guestId: string | null) {
     const supabase = createClient()
-    const prev = guests.find(g => g.rsvp_response_id === rsvpId)
+    const prev = guests.find(g => g.guest_key === personKey)
     if (prev?.id === guestId) return
     if (prev) {
       const { error } = await supabase.from('expected_guests')
-        .update({ rsvp_response_id: null }).eq('id', prev.id)
+        .update({ rsvp_response_id: null, guest_key: null }).eq('id', prev.id)
       if (error) { showError(`Error al desenlazar: ${error.message}`); return }
     }
     if (guestId) {
       const { error } = await supabase.from('expected_guests')
-        .update({ rsvp_response_id: rsvpId }).eq('id', guestId)
+        .update({ rsvp_response_id: rsvpId, guest_key: personKey }).eq('id', guestId)
       if (error) { showError(`Error al enlazar: ${error.message}`); return }
     }
     setGuests(prev2 => prev2.map(g => {
-      if (g.id === prev?.id) return { ...g, rsvp_response_id: null }
-      if (g.id === guestId) return { ...g, rsvp_response_id: rsvpId }
+      if (g.id === prev?.id) return { ...g, rsvp_response_id: null, guest_key: null }
+      if (g.id === guestId) return { ...g, rsvp_response_id: rsvpId, guest_key: personKey }
       return g
     }))
   }
@@ -192,7 +192,7 @@ export function GuestTable({
       ])
       setItems(prev => prev.filter(r => r.id !== row.rsvpId))
       setGuests(prev => prev.map(g =>
-        g.rsvp_response_id === row.rsvpId ? { ...g, rsvp_response_id: null } : g
+        g.rsvp_response_id === row.rsvpId ? { ...g, rsvp_response_id: null, guest_key: null } : g
       ))
     } else if (!row.isChild) {
       const newNames = (resp.adult_names ?? []).filter((_, i) => i !== row.personIndex)
@@ -205,10 +205,14 @@ export function GuestTable({
       await Promise.all([
         supabase.from('table_assignments').delete().eq('guest_key', row.personKey),
         supabase.from('guest_relationships').delete().or(`guest_a_key.eq.${row.personKey},guest_b_key.eq.${row.personKey}`),
+        supabase.from('expected_guests').update({ rsvp_response_id: null, guest_key: null }).eq('guest_key', row.personKey),
       ])
       setItems(prev => prev.map(r => r.id !== row.rsvpId ? r : {
         ...r, adults_count: newCount, adult_names: newNames, adult_menus: newMenus,
       }))
+      setGuests(prev => prev.map(g =>
+        g.guest_key === row.personKey ? { ...g, rsvp_response_id: null, guest_key: null } : g
+      ))
     } else {
       const newNames = (resp.children_names ?? []).filter((_, i) => i !== row.personIndex)
       const newMenus = (resp.children_menus ?? []).filter((_, i) => i !== row.personIndex)
@@ -221,11 +225,15 @@ export function GuestTable({
       await Promise.all([
         supabase.from('table_assignments').delete().eq('guest_key', row.personKey),
         supabase.from('guest_relationships').delete().or(`guest_a_key.eq.${row.personKey},guest_b_key.eq.${row.personKey}`),
+        supabase.from('expected_guests').update({ rsvp_response_id: null, guest_key: null }).eq('guest_key', row.personKey),
       ])
       setItems(prev => prev.map(r => r.id !== row.rsvpId ? r : {
         ...r, children_count: newCount, has_children: newCount > 0,
         children_names: newNames, children_menus: newMenus,
       }))
+      setGuests(prev => prev.map(g =>
+        g.guest_key === row.personKey ? { ...g, rsvp_response_id: null, guest_key: null } : g
+      ))
     }
     setDeleting(null)
   }
@@ -328,20 +336,18 @@ export function GuestTable({
                           )}
                         </div>
                       </td>
-                      {/* Lista — link to expected guest, only first of group */}
+                      {/* Lista — per-person link */}
                       <td className="px-3 py-2">
-                        {row.isGroupFirst ? (() => {
-                          const resp = items.find(r => r.id === row.rsvpId)
-                          const rsvpName = resp?.guest_name ?? row.name
-                          const linked = guests.find(g => g.rsvp_response_id === row.rsvpId)
+                        {(() => {
+                          const linked = guests.find(g => g.guest_key === row.personKey)
                           const options = guests
-                            .filter(g => !g.rsvp_response_id || g.rsvp_response_id === row.rsvpId)
-                            .map(g => ({ ...g, score: nameSimilarity(g.name, rsvpName) }))
+                            .filter(g => !g.guest_key || g.guest_key === row.personKey)
+                            .map(g => ({ ...g, score: nameSimilarity(g.name, row.name) }))
                             .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
                           return (
                             <select
                               value={linked?.id ?? ''}
-                              onChange={e => handleLink(row.rsvpId, e.target.value || null)}
+                              onChange={e => handleLink(row.personKey, row.rsvpId, e.target.value || null)}
                               className="text-xs rounded-lg border px-2 py-1 outline-none focus:ring-2 focus:ring-amber-300"
                               style={{
                                 borderColor: linked ? '#4CAF50' : '#F4D7D7',
@@ -358,7 +364,7 @@ export function GuestTable({
                               ))}
                             </select>
                           )
-                        })() : null}
+                        })()}
                       </td>
                       {/* Asiste — only first of group */}
                       <td className="px-4 py-2.5">
