@@ -68,7 +68,8 @@ export function RSVPForm({ wedding, menuOptions }: { wedding: Wedding; menuOptio
   const [busIda, setBusIda] = useState(false)
   const [busVuelta, setBusVuelta] = useState(false)
   const [hp, setHp] = useState('')
-  const loadedAt = useRef(Date.now())
+  const loadedAt = useRef(0)
+  useEffect(() => { loadedAt.current = Date.now() }, [])
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema) as any,

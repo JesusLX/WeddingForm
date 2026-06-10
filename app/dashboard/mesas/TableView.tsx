@@ -43,7 +43,7 @@ export function TableView({ guests, tablesCount, assignments, onAssignmentsChang
     setDragging(null)
   }
 
-  function GuestChip({ guest, tableNum }: { guest: SeatingGuest; tableNum: number | null }) {
+  function GuestChip({ guest }: { guest: SeatingGuest }) {
     return (
       <div
         draggable
@@ -75,7 +75,7 @@ export function TableView({ guests, tablesCount, assignments, onAssignmentsChang
             Sin asignar ({unassigned.length})
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {unassigned.map(g => <GuestChip key={g.key} guest={g} tableNum={null} />)}
+            {unassigned.map(g => <GuestChip key={g.key} guest={g} />)}
           </div>
         </div>
       )}
@@ -108,7 +108,7 @@ export function TableView({ guests, tablesCount, assignments, onAssignmentsChang
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {tableGuests.map(g => <GuestChip key={g.key} guest={g} tableNum={tableNum} />)}
+                {tableGuests.map(g => <GuestChip key={g.key} guest={g} />)}
               </div>
               {tableGuests.length === 0 && (
                 <p className="text-xs text-center mt-3" style={{ color: '#ccc' }}>Arrastra invitados aquí</p>

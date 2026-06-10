@@ -1,12 +1,9 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { requireUser } from '@/lib/dashboard'
 import { formatDate } from '@/lib/utils'
 
 export default async function DashboardPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase, user } = await requireUser()
 
   const { data: wedding } = await supabase
     .from('weddings')

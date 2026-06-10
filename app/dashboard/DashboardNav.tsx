@@ -20,10 +20,8 @@ const NAV_ITEMS = [
 
 export function DashboardNav({
   wedding,
-  userEmail,
 }: {
   wedding: { id: string; slug: string; partner_1: string; partner_2: string } | null
-  userEmail: string
 }) {
   const pathname = usePathname()
   const router = useRouter()

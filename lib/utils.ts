@@ -25,14 +25,24 @@ export function extractSheetId(url: string): string | null {
   return match ? match[1] : null
 }
 
+function isGoogleHost(hostname: string): boolean {
+  return (
+    hostname === 'google.com' ||
+    hostname.endsWith('.google.com') ||
+    hostname === 'maps.app.goo.gl' ||
+    hostname === 'goo.gl'
+  )
+}
+
 export function buildMapsEmbedUrl(mapsUrl: string): string {
   try {
     const url = new URL(mapsUrl)
-    if (url.hostname.includes('google.com') && url.pathname.includes('/maps')) {
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('bad protocol')
+    if (isGoogleHost(url.hostname) && url.pathname.includes('/maps')) {
       const q = url.searchParams.get('q')
       if (q) return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&output=embed`
       // For share links like maps.app.goo.gl or full URLs
-      return `https://www.google.com/maps/embed?pb=${url.searchParams.get('pb') ?? ''}`
+      return `https://www.google.com/maps/embed?pb=${encodeURIComponent(url.searchParams.get('pb') ?? '')}`
     }
   } catch {}
   // Fallback: treat as address
@@ -42,12 +52,13 @@ export function buildMapsEmbedUrl(mapsUrl: string): string {
 export function buildMapsDirectionsUrl(mapsUrl: string): string {
   try {
     const url = new URL(mapsUrl)
-    if (url.hostname.includes('google.com')) {
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('bad protocol')
+    if (isGoogleHost(url.hostname)) {
       // Embed URLs can't be opened directly — strip /embed and keep the pb param
       if (url.pathname.includes('/embed')) {
         const pb = url.searchParams.get('pb')
         return pb
-          ? `https://www.google.com/maps?pb=${pb}`
+          ? `https://www.google.com/maps?pb=${encodeURIComponent(pb)}`
           : 'https://maps.google.com/maps'
       }
       return mapsUrl

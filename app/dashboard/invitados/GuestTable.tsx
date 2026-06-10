@@ -191,21 +191,18 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
     a.click()
   }
 
-  const tabs = [
+  const tabs: { key: 'all' | 'confirmed' | 'declined'; label: string }[] = [
     { key: 'all', label: `Todos (${items.length} envíos · ${totalPeople} personas)` },
     { key: 'confirmed', label: `Confirmados (${confirmedCount})` },
     { key: 'declined', label: `No asisten (${declinedCount})` },
   ]
-
-  // Track group boundaries for visual separation
-  let prevRsvpId = ''
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key as any)}
+            <button key={t.key} onClick={() => setTab(t.key)}
               className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
               style={{ backgroundColor: tab === t.key ? '#C9A84C' : 'white', color: tab === t.key ? 'white' : '#555555', border: '1px solid #F4D7D7' }}>
               {t.label}
@@ -242,8 +239,7 @@ export function GuestTable({ responses, menuOptions }: { responses: Response[]; 
               </thead>
               <tbody>
                 {filtered.map((row, i) => {
-                  const isNewGroup = row.rsvpId !== prevRsvpId
-                  prevRsvpId = row.rsvpId
+                  const isNewGroup = i === 0 || row.rsvpId !== filtered[i - 1].rsvpId
                   const isDuplicate = duplicateNames.has(row.name.trim().toLowerCase())
                   return (
                     <tr key={row.personKey}

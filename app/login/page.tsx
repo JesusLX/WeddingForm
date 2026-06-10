@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { HoneypotField } from '@/components/HoneypotField'
@@ -12,7 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [hp, setHp] = useState('')
-  const loadedAt = useRef(Date.now())
+  const loadedAt = useRef(0)
+  useEffect(() => { loadedAt.current = Date.now() }, [])
   const router = useRouter()
   const supabase = createClient()
 

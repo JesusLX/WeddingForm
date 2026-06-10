@@ -1,13 +1,10 @@
-import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { requireUser } from '@/lib/dashboard'
+import { UI } from '@/lib/ui'
 import { DashboardNav } from './DashboardNav'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase, user } = await requireUser()
 
-  // Check if user has a wedding, if not redirect to setup
   const { data: wedding } = await supabase
     .from('weddings')
     .select('id, slug, partner_1, partner_2')
@@ -15,8 +12,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single()
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF7F4' }}>
-      <DashboardNav wedding={wedding} userEmail={user.email ?? ''} />
+    <div className="min-h-screen" style={{ backgroundColor: UI.bg }}>
+      <DashboardNav wedding={wedding} />
       <main className="max-w-5xl mx-auto px-4 py-8">
         {children}
       </main>

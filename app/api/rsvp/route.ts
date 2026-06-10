@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-server'
 import { appendRsvpToSheet } from '@/lib/sheets'
+import { rateLimit } from '@/lib/rate-limit'
 
 const schema = z.object({
   wedding_id: z.string().uuid(),
@@ -24,6 +25,15 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const limited = rateLimit(`rsvp:${ip}`, { limit: 10, windowMs: 60_000 })
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: 'Demasiadas peticiones. Inténtalo de nuevo en un momento.' },
+        { status: 429, headers: { 'Retry-After': String(limited.retryAfterSeconds) } }
+      )
+    }
+
     const body = await req.json()
     const data = schema.parse(body)
 

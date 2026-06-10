@@ -47,15 +47,6 @@ const PALETTES = [
   },
 ]
 
-function ColorSwatch({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="w-8 h-8 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: color }} />
-      <span className="text-xs" style={{ color: '#999' }}>{label}</span>
-    </div>
-  )
-}
-
 export function PaletteManager({
   weddingId,
   initialBg,
@@ -90,6 +81,12 @@ export function PaletteManager({
 
   async function save() {
     if (!weddingId) return
+    const isHex = (c: string) => /^#[0-9A-Fa-f]{6}$/.test(c)
+    if (![bg, accent, primary, dark].every(isHex)) {
+      setMessage('Error: los colores deben ser hex válidos (#RRGGBB)')
+      setTimeout(() => setMessage(''), 2500)
+      return
+    }
     setSaving(true)
     const { error } = await supabase
       .from('weddings')

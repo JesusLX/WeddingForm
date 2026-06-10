@@ -1,11 +1,9 @@
-import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { requireUser } from '@/lib/dashboard'
+import { pageTitleClass, pageTitleStyle } from '@/lib/ui'
 import { ConfigForm } from './ConfigForm'
 
 export default async function ConfigurarPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { supabase, user } = await requireUser()
 
   const { data: wedding } = await supabase
     .from('weddings')
@@ -15,10 +13,7 @@ export default async function ConfigurarPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1
-        className="text-3xl italic mb-6"
-        style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}
-      >
+      <h1 className={pageTitleClass} style={pageTitleStyle}>
         Configurar mi boda
       </h1>
       <ConfigForm wedding={wedding} userId={user.id} />

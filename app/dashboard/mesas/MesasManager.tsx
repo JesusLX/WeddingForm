@@ -142,10 +142,13 @@ export function MesasManager({
     try {
       const supabase = createClient()
 
-      await Promise.all([
+      const results = await Promise.all([
         // Save relationships
-        supabase.from('guest_relationships').delete().eq('wedding_id', weddingId).then(() =>
-          supabase.from('guest_relationships').insert(
+        (async () => {
+          const del = await supabase.from('guest_relationships').delete().eq('wedding_id', weddingId)
+          if (del.error) return del.error
+          if (!relationships.length) return null
+          const ins = await supabase.from('guest_relationships').insert(
             relationships.map(r => ({
               wedding_id: weddingId,
               guest_a_key: r.guest_a_key,
@@ -153,24 +156,31 @@ export function MesasManager({
               type: r.type,
             }))
           )
-        ),
+          return ins.error
+        })(),
         // Save assignments
         (async () => {
-          await supabase.from('table_assignments').delete().eq('wedding_id', weddingId)
+          const del = await supabase.from('table_assignments').delete().eq('wedding_id', weddingId)
+          if (del.error) return del.error
           const rows = Array.from(assignments.entries()).map(([guestKey, tableNumber]) => ({
             wedding_id: weddingId,
             table_number: tableNumber,
             guest_key: guestKey,
           }))
-          if (rows.length) await supabase.from('table_assignments').insert(rows)
+          if (!rows.length) return null
+          const ins = await supabase.from('table_assignments').insert(rows)
+          return ins.error
         })(),
         // Save table config
         supabase.from('weddings').update({
           tables_count: tablesCount,
           tables_min_guests: minGuests,
           tables_max_guests: maxGuests,
-        }).eq('id', weddingId),
+        }).eq('id', weddingId).then(r => r.error),
       ])
+
+      const firstError = results.find(Boolean)
+      if (firstError) throw firstError
 
       setSaveMsg('Guardado ✓')
     } catch {

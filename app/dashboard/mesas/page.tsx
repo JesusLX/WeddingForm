@@ -1,19 +1,14 @@
-import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { requireWedding } from '@/lib/dashboard'
+import { UI, pageTitleStyle } from '@/lib/ui'
 import { MesasManager } from './MesasManager'
 import type { GuestRelationship, TableAssignment } from '@/lib/types'
 
 export default async function MesasPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: wedding } = await supabase
-    .from('weddings')
-    .select('id, tables_count, tables_min_guests, tables_max_guests')
-    .eq('user_id', user.id)
-    .single()
-  if (!wedding) redirect('/dashboard/configurar')
+  const { supabase, wedding } = await requireWedding<{
+    tables_count: number | null
+    tables_min_guests: number | null
+    tables_max_guests: number | null
+  }>('id, tables_count, tables_min_guests, tables_max_guests')
 
   const [{ data: responses }, { data: relationships }, { data: assignments }] = await Promise.all([
     supabase
@@ -33,10 +28,10 @@ export default async function MesasPage() {
 
   return (
     <div>
-      <h1 className="text-3xl italic mb-2" style={{ fontFamily: 'var(--font-playfair)', color: '#2D2D2D' }}>
+      <h1 className="text-3xl italic mb-2" style={pageTitleStyle}>
         Distribución de mesas
       </h1>
-      <p className="text-sm mb-6" style={{ color: '#9D8A7A' }}>
+      <p className="text-sm mb-6" style={{ color: UI.text }}>
         Define relaciones entre invitados y calcula la distribución óptima de mesas.
       </p>
       <MesasManager
