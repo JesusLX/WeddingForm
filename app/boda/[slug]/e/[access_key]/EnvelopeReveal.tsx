@@ -204,9 +204,15 @@ export function EnvelopeReveal({
         >
           {/* Interlocked rings */}
           <div className="flex justify-center mb-6">
-            <svg viewBox="0 0 90 44" width="90" height="44" fill="none">
-              <circle cx="28" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7"/>
-              <circle cx="62" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7"/>
+            <svg viewBox="0 0 86 44" width="90" height="44" fill="none">
+              <defs>
+                <mask id="ring-mask">
+                  <rect width="86" height="44" fill="white"/>
+                  <circle cx="30" cy="22" r="19" fill="black"/>
+                </mask>
+              </defs>
+              <circle cx="56" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7" mask="url(#ring-mask)"/>
+              <circle cx="30" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7"/>
             </svg>
           </div>
 
