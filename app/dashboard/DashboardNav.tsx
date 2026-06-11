@@ -2,12 +2,84 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+
+function Svg({ children }: { children: ReactNode }) {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  )
+}
+
+const ICONS = {
+  resumen: (
+    <Svg>
+      <path d="M3 20h18" />
+      <path d="M7 20V9" /><path d="M12 20V4" /><path d="M17 20V13" />
+    </Svg>
+  ),
+  configurar: (
+    <Svg>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+      <circle cx="9" cy="6" r="2.5" /><circle cx="15" cy="12" r="2.5" /><circle cx="9" cy="18" r="2.5" />
+    </Svg>
+  ),
+  menu: (
+    <Svg>
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+      <path d="M9 5c0-1.1.9-2 2-2h2a2 2 0 012 2v0a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      <path d="M9 12h6M9 16h4" />
+    </Svg>
+  ),
+  autobus: (
+    <Svg>
+      <rect x="1" y="6" width="22" height="14" rx="2" />
+      <path d="M16 6V4a2 2 0 00-2-2H10a2 2 0 00-2 2v2" />
+      <path d="M1 12h22M7 20v-2M17 20v-2" />
+      <circle cx="6.5" cy="16" r="1" /><circle cx="17.5" cy="16" r="1" />
+    </Svg>
+  ),
+  clock: (
+    <Svg>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </Svg>
+  ),
+  faq: (
+    <Svg>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={2} />
+    </Svg>
+  ),
+  apariencia: (
+    <Svg>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="M21 15l-5-5L5 21" />
+    </Svg>
+  ),
+  invitados: (
+    <Svg>
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </Svg>
+  ),
+  mesas: (
+    <Svg>
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+    </Svg>
+  ),
+}
 
 type NavItem = {
   href: string
   label: string
-  icon: string
+  icon: ReactNode
   alsoActive?: string[]
 }
 
@@ -15,25 +87,25 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: '/dashboard', label: 'Resumen', icon: '📊' },
+      { href: '/dashboard', label: 'Resumen', icon: ICONS.resumen },
     ],
   },
   {
     label: 'Tu boda',
     items: [
-      { href: '/dashboard/configurar', label: 'Configurar', icon: '⚙️' },
-      { href: '/dashboard/menu', label: 'Menú', icon: '🍽️' },
-      { href: '/dashboard/autobus', label: 'Autobús', icon: '🚌' },
-      { href: '/dashboard/timeline', label: 'Programa del día', icon: '🕐' },
-      { href: '/dashboard/faq', label: 'FAQ', icon: '❓' },
-      { href: '/dashboard/apariencia', label: 'Apariencia', icon: '🎨' },
+      { href: '/dashboard/configurar', label: 'Configurar', icon: ICONS.configurar },
+      { href: '/dashboard/menu', label: 'Menú', icon: ICONS.menu },
+      { href: '/dashboard/autobus', label: 'Autobús', icon: ICONS.autobus },
+      { href: '/dashboard/timeline', label: 'Programa del día', icon: ICONS.clock },
+      { href: '/dashboard/faq', label: 'FAQ', icon: ICONS.faq },
+      { href: '/dashboard/apariencia', label: 'Apariencia', icon: ICONS.apariencia },
     ],
   },
   {
     label: 'Invitados',
     items: [
-      { href: '/dashboard/invitados', label: 'Invitados', icon: '👥', alsoActive: ['/dashboard/lista'] },
-      { href: '/dashboard/mesas', label: 'Distribución de mesas', icon: '🪑' },
+      { href: '/dashboard/invitados', label: 'Invitados', icon: ICONS.invitados, alsoActive: ['/dashboard/lista'] },
+      { href: '/dashboard/mesas', label: 'Distribución de mesas', icon: ICONS.mesas },
     ],
   },
 ]
@@ -124,7 +196,7 @@ function SidebarContent({
                         fontWeight: active ? 500 : 400,
                       }}
                     >
-                      <span className="text-sm leading-none w-5 text-center">{item.icon}</span>
+                      {item.icon}
                       {item.label}
                     </Link>
                   </li>
@@ -143,7 +215,7 @@ function SidebarContent({
           style={{ color: 'rgba(255,255,255,0.3)' }}
         >
           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           Cerrar sesión
