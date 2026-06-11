@@ -70,6 +70,7 @@ export interface WeddingEvent {
   maps_url: string | null
   description: string | null
   sort_order: number
+  access_key: string
   created_at: string
 }
 

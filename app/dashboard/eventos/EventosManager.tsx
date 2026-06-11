@@ -21,9 +21,11 @@ const emptyForm: EventForm = {
 
 export function EventosManager({
   weddingId,
+  weddingSlug,
   initialEvents,
 }: {
   weddingId: string
+  weddingSlug: string
   initialEvents: WeddingEvent[]
 }) {
   const [events, setEvents] = useState<WeddingEvent[]>(initialEvents)
@@ -32,7 +34,18 @@ export function EventosManager({
   const [editForm, setEditForm] = useState<EventForm>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
   const supabase = createClient()
+
+  function eventUrl(accessKey: string) {
+    return `${window.location.origin}/boda/${weddingSlug}/e/${accessKey}`
+  }
+
+  async function copyUrl(accessKey: string) {
+    await navigator.clipboard.writeText(eventUrl(accessKey))
+    setCopied(accessKey)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   function showMsg(msg: string) {
     setMessage(msg)
@@ -200,6 +213,20 @@ export function EventosManager({
                     </p>
                     {ev.venue && <p className="text-xs mt-0.5" style={{ color: UI.text }}>{ev.venue}</p>}
                     {ev.description && <p className="text-xs mt-1 line-clamp-2" style={{ color: UI.muted }}>{ev.description}</p>}
+                    {ev.access_key && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs truncate max-w-[180px]" style={{ color: UI.muted }}>
+                          /boda/{weddingSlug}/e/{ev.access_key.slice(0, 8)}…
+                        </span>
+                        <button
+                          onClick={() => copyUrl(ev.access_key)}
+                          className="text-xs px-2 py-0.5 rounded flex-shrink-0"
+                          style={{ color: copied === ev.access_key ? UI.success : UI.primary, backgroundColor: `${UI.primary}15` }}
+                        >
+                          {copied === ev.access_key ? 'Copiado ✓' : 'Copiar enlace'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button

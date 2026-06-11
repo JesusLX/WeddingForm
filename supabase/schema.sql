@@ -230,8 +230,11 @@ CREATE TABLE IF NOT EXISTS wedding_events (
   maps_url TEXT,
   description TEXT,
   sort_order INT DEFAULT 0,
+  access_key UUID DEFAULT gen_random_uuid() NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+-- Migration for existing installs:
+ALTER TABLE wedding_events ADD COLUMN IF NOT EXISTS access_key UUID DEFAULT gen_random_uuid();
 ALTER TABLE wedding_events ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (

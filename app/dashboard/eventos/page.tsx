@@ -5,7 +5,7 @@ import { EventosManager } from './EventosManager'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export default async function EventosPage() {
-  const { wedding } = await requireWedding('id')
+  const { wedding } = await requireWedding<{ slug: string }>('id, slug')
   const supabase = await createServerSupabaseClient()
 
   const { data: events } = await supabase
@@ -20,9 +20,9 @@ export default async function EventosPage() {
         Eventos extra
       </h1>
       <p className="text-sm mb-6" style={{ color: UI.muted }}>
-        Añade eventos adicionales como la preboda, la despedida o la comida del día siguiente. Se mostrarán en la página de tu boda.
+        Añade eventos privados como la preboda, la despedida o la comida del día siguiente. Cada uno tiene un enlace único que compartes solo con sus invitados.
       </p>
-      <EventosManager weddingId={wedding.id} initialEvents={(events ?? []) as WeddingEvent[]} />
+      <EventosManager weddingId={wedding.id} weddingSlug={wedding.slug} initialEvents={(events ?? []) as WeddingEvent[]} />
     </div>
   )
 }
