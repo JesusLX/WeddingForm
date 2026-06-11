@@ -98,9 +98,10 @@ export function EnvelopeReveal({
     setTimeout(() => setPhase('revealed'), 900)
   }
 
-  const dateStr = new Date(event.event_date + 'T00:00:00').toLocaleDateString('es-ES', {
+  const rawDate = new Date(event.event_date + 'T00:00:00').toLocaleDateString('es-ES', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
+  const dateStr = rawDate.charAt(0).toUpperCase() + rawDate.slice(1).toLowerCase()
   const timeStr = event.event_time ? event.event_time.slice(0, 5) : null
   const mapsHref = event.maps_url
     ? event.maps_url
@@ -198,57 +199,78 @@ export function EnvelopeReveal({
 
       {phase === 'revealed' && (
         <div
-          className="w-full max-w-lg text-center px-6 py-20 mx-auto"
+          className="w-full max-w-sm text-center px-6 py-16 mx-auto"
           style={{ animation: 'card-in 0.75s cubic-bezier(0.2,0.85,0.4,1) forwards' }}
         >
-          <p
-            className="uppercase tracking-[0.3em] text-xs mb-6"
-            style={{ color: 'var(--w-primary)', opacity: 0.65 }}
-          >
+          {/* Interlocked rings */}
+          <div className="flex justify-center mb-6">
+            <svg viewBox="0 0 90 44" width="90" height="44" fill="none">
+              <circle cx="28" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7"/>
+              <circle cx="62" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7"/>
+            </svg>
+          </div>
+
+          {/* Names */}
+          <p className="uppercase tracking-[0.28em] text-xs font-medium" style={{ color: 'var(--w-primary)' }}>
             {weddingNames}
           </p>
+          <p className="mt-1 mb-6 text-sm italic" style={{ color: 'var(--w-dark)', opacity: 0.5, fontFamily: 'var(--font-playfair)' }}>
+            te invitan a
+          </p>
 
+          {/* Ornamental divider */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="h-px flex-1" style={{ backgroundColor: 'var(--w-primary)', opacity: 0.3 }} />
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="var(--w-primary)" opacity="0.5">
+              <path d="M8 0l2 6h6l-5 3.5 2 6L8 12l-5 3.5 2-6L0 6h6z"/>
+            </svg>
+            <div className="h-px flex-1" style={{ backgroundColor: 'var(--w-primary)', opacity: 0.3 }} />
+          </div>
+
+          {/* Event name */}
           <h1
-            className="text-4xl md:text-5xl italic mb-4 leading-tight"
+            className="text-5xl italic leading-tight mb-2"
             style={{ fontFamily: 'var(--font-playfair)', color: 'var(--w-dark)' }}
           >
             {event.name}
           </h1>
 
-          <div className="h-px w-16 mx-auto mb-8" style={{ backgroundColor: 'var(--w-primary)' }} />
+          {/* Gold divider */}
+          <div className="h-px w-12 mx-auto my-7" style={{ backgroundColor: 'var(--w-primary)' }} />
 
-          <div className="space-y-2 mb-8">
-            <p className="text-lg capitalize" style={{ color: 'var(--w-dark)' }}>
-              {dateStr}
+          {/* Date + time */}
+          <p className="text-base mb-1" style={{ color: 'var(--w-dark)', opacity: 0.8 }}>
+            {dateStr}
+          </p>
+          {timeStr && (
+            <p className="text-3xl font-semibold tracking-wide mb-7" style={{ color: 'var(--w-primary)', fontFamily: 'var(--font-playfair)' }}>
+              {timeStr}
             </p>
-            {timeStr && (
-              <p className="text-2xl font-semibold" style={{ color: 'var(--w-primary)' }}>
-                {timeStr}
-              </p>
-            )}
-          </div>
+          )}
 
+          {/* Venue card */}
           {(event.venue || event.address) && (
             <div
-              className="rounded-2xl px-6 py-5 mb-6 text-left max-w-sm mx-auto"
-              style={{ backgroundColor: 'var(--w-accent)' }}
+              className="rounded-2xl px-5 py-4 mb-5 text-center"
+              style={{ backgroundColor: 'var(--w-accent)', border: '1px solid color-mix(in srgb, var(--w-primary) 20%, transparent)' }}
             >
               {event.venue && (
-                <p className="font-semibold text-base mb-1" style={{ color: 'var(--w-dark)' }}>
+                <p className="font-semibold text-base" style={{ color: 'var(--w-dark)' }}>
                   {event.venue}
                 </p>
               )}
               {event.address && (
-                <p className="text-sm" style={{ color: '#666' }}>
+                <p className="text-sm mt-0.5" style={{ color: 'var(--w-dark)', opacity: 0.6 }}>
                   {event.address}
                 </p>
               )}
             </div>
           )}
 
+          {/* Description */}
           {event.description && (
-            <p className="text-sm leading-relaxed mb-8" style={{ color: '#555' }}>
-              {event.description}
+            <p className="text-sm leading-relaxed mb-6 italic" style={{ color: 'var(--w-dark)', opacity: 0.6, fontFamily: 'var(--font-playfair)' }}>
+              "{event.description}"
             </p>
           )}
 
