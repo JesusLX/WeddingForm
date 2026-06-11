@@ -84,6 +84,14 @@ const ICONS = {
       <path d="M22 6l-10 7L2 6" />
     </Svg>
   ),
+  autobus: (
+    <Svg>
+      <rect x="1" y="6" width="22" height="14" rx="2" />
+      <path d="M16 6V4a2 2 0 00-2-2H10a2 2 0 00-2 2v2" />
+      <path d="M1 12h22M7 20v-2M17 20v-2" />
+      <circle cx="6.5" cy="16" r="1" /><circle cx="17.5" cy="16" r="1" />
+    </Svg>
+  ),
   spotify: (
     <Svg>
       <circle cx="12" cy="12" r="10" />
@@ -123,7 +131,8 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: 'Planificación',
     items: [
-      { href: '/dashboard/menu', label: 'Menú y autobús', icon: ICONS.menu, alsoActive: ['/dashboard/autobus'] },
+      { href: '/dashboard/menu', label: 'Menú', icon: ICONS.menu },
+      { href: '/dashboard/autobus', label: 'Autobús', icon: ICONS.autobus },
       { href: '/dashboard/timeline', label: 'Programa del día', icon: ICONS.clock },
     ],
   },
