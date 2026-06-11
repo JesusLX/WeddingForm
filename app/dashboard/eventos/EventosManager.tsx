@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 import type { WeddingEvent } from '@/lib/types'
 import { cardClass, cardStyle, inputClass, inputStyle, primaryButtonClass, primaryButtonStyle, UI } from '@/lib/ui'
 
-type EventForm = {
+type FormValues = {
   name: string
   event_date: string
   event_time: string
@@ -14,9 +14,60 @@ type EventForm = {
   description: string
 }
 
-const emptyForm: EventForm = {
+const emptyForm: FormValues = {
   name: '', event_date: '', event_time: '',
   venue: '', address: '', maps_url: '', description: '',
+}
+
+// Defined outside to keep a stable reference across renders
+function Field({
+  label, fieldKey, f, setF, type = 'text', placeholder = '', full = false,
+}: {
+  label: string
+  fieldKey: keyof FormValues
+  f: FormValues
+  setF: (v: FormValues) => void
+  type?: string
+  placeholder?: string
+  full?: boolean
+}) {
+  return (
+    <div className={full ? 'col-span-2' : ''}>
+      <label className="block text-xs font-medium mb-1" style={{ color: UI.text }}>{label}</label>
+      <input
+        type={type}
+        className={inputClass}
+        style={inputStyle}
+        placeholder={placeholder}
+        value={f[fieldKey]}
+        onChange={e => setF({ ...f, [fieldKey]: e.target.value })}
+      />
+    </div>
+  )
+}
+
+function EventFormFields({ f, setF }: { f: FormValues; setF: (v: FormValues) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="Nombre del evento *" fieldKey="name"       f={f} setF={setF} placeholder="Ej: Comida del día siguiente" full />
+      <Field label="Fecha *"             fieldKey="event_date" f={f} setF={setF} type="date" />
+      <Field label="Hora"                fieldKey="event_time" f={f} setF={setF} type="time" />
+      <Field label="Lugar"               fieldKey="venue"      f={f} setF={setF} placeholder="Nombre del sitio" />
+      <Field label="Dirección"           fieldKey="address"    f={f} setF={setF} placeholder="Dirección completa" />
+      <Field label="Google Maps URL"     fieldKey="maps_url"   f={f} setF={setF} placeholder="https://maps.google.com/..." />
+      <div className="col-span-2">
+        <label className="block text-xs font-medium mb-1" style={{ color: UI.text }}>Descripción</label>
+        <textarea
+          className={inputClass}
+          style={{ ...inputStyle, resize: 'vertical' }}
+          rows={2}
+          placeholder="Detalles adicionales..."
+          value={f.description}
+          onChange={e => setF({ ...f, description: e.target.value })}
+        />
+      </div>
+    </div>
+  )
 }
 
 export function EventosManager({
@@ -28,13 +79,13 @@ export function EventosManager({
   weddingSlug: string
   initialEvents: WeddingEvent[]
 }) {
-  const [events, setEvents] = useState<WeddingEvent[]>(initialEvents)
-  const [form, setForm] = useState<EventForm>(emptyForm)
+  const [events, setEvents]     = useState<WeddingEvent[]>(initialEvents)
+  const [form, setForm]         = useState<FormValues>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<EventForm>(emptyForm)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-  const [copied, setCopied] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<FormValues>(emptyForm)
+  const [saving, setSaving]     = useState(false)
+  const [message, setMessage]   = useState('')
+  const [copied, setCopied]     = useState<string | null>(null)
   const supabase = createClient()
 
   function eventUrl(accessKey: string) {
@@ -58,15 +109,15 @@ export function EventosManager({
     const { data, error } = await supabase
       .from('wedding_events')
       .insert({
-        wedding_id: weddingId,
-        name: form.name.trim(),
-        event_date: form.event_date,
-        event_time: form.event_time || null,
-        venue: form.venue.trim() || null,
-        address: form.address.trim() || null,
-        maps_url: form.maps_url.trim() || null,
+        wedding_id:  weddingId,
+        name:        form.name.trim(),
+        event_date:  form.event_date,
+        event_time:  form.event_time || null,
+        venue:       form.venue.trim() || null,
+        address:     form.address.trim() || null,
+        maps_url:    form.maps_url.trim() || null,
         description: form.description.trim() || null,
-        sort_order: events.length,
+        sort_order:  events.length,
       })
       .select()
       .single()
@@ -80,12 +131,12 @@ export function EventosManager({
   function startEdit(ev: WeddingEvent) {
     setEditingId(ev.id)
     setEditForm({
-      name: ev.name,
-      event_date: ev.event_date,
-      event_time: ev.event_time ?? '',
-      venue: ev.venue ?? '',
-      address: ev.address ?? '',
-      maps_url: ev.maps_url ?? '',
+      name:        ev.name,
+      event_date:  ev.event_date,
+      event_time:  ev.event_time ?? '',
+      venue:       ev.venue ?? '',
+      address:     ev.address ?? '',
+      maps_url:    ev.maps_url ?? '',
       description: ev.description ?? '',
     })
   }
@@ -96,18 +147,22 @@ export function EventosManager({
     const { error } = await supabase
       .from('wedding_events')
       .update({
-        name: editForm.name.trim(),
-        event_date: editForm.event_date,
-        event_time: editForm.event_time || null,
-        venue: editForm.venue.trim() || null,
-        address: editForm.address.trim() || null,
-        maps_url: editForm.maps_url.trim() || null,
+        name:        editForm.name.trim(),
+        event_date:  editForm.event_date,
+        event_time:  editForm.event_time || null,
+        venue:       editForm.venue.trim() || null,
+        address:     editForm.address.trim() || null,
+        maps_url:    editForm.maps_url.trim() || null,
         description: editForm.description.trim() || null,
       })
       .eq('id', editingId)
     setSaving(false)
     if (error) { showMsg('Error al guardar'); return }
-    setEvents(events.map(ev => ev.id === editingId ? { ...ev, ...editForm, event_time: editForm.event_time || null, venue: editForm.venue.trim() || null, address: editForm.address.trim() || null, maps_url: editForm.maps_url.trim() || null, description: editForm.description.trim() || null } : ev))
+    setEvents(events.map(ev =>
+      ev.id === editingId
+        ? { ...ev, ...editForm, event_time: editForm.event_time || null, venue: editForm.venue.trim() || null, address: editForm.address.trim() || null, maps_url: editForm.maps_url.trim() || null, description: editForm.description.trim() || null }
+        : ev
+    ))
     setEditingId(null)
     showMsg('Guardado')
   }
@@ -118,51 +173,12 @@ export function EventosManager({
     setEvents(events.filter(ev => ev.id !== id))
   }
 
-  const iField = (label: string, key: keyof EventForm, opts?: { type?: string; placeholder?: string; full?: boolean; form: EventForm; setF: (f: EventForm) => void }) => {
-    const { type = 'text', placeholder = '', form: f, setF } = opts ?? { form, setF: setForm }
-    return (
-      <div className={opts?.full ? 'col-span-2' : ''}>
-        <label className="block text-xs font-medium mb-1" style={{ color: UI.text }}>{label}</label>
-        <input
-          type={type}
-          className={inputClass}
-          style={inputStyle}
-          placeholder={placeholder}
-          value={f[key]}
-          onChange={e => setF({ ...f, [key]: e.target.value })}
-        />
-      </div>
-    )
-  }
-
-  const EventForm = ({ f, setF }: { f: EventForm; setF: (f: EventForm) => void }) => (
-    <div className="grid grid-cols-2 gap-3">
-      {iField('Nombre del evento *', 'name', { placeholder: 'Ej: Comida del día siguiente', full: true, form: f, setF })}
-      {iField('Fecha *', 'event_date', { type: 'date', form: f, setF })}
-      {iField('Hora', 'event_time', { type: 'time', form: f, setF })}
-      {iField('Lugar', 'venue', { placeholder: 'Nombre del sitio', form: f, setF })}
-      {iField('Dirección', 'address', { placeholder: 'Dirección completa', form: f, setF })}
-      {iField('Google Maps URL', 'maps_url', { placeholder: 'https://maps.google.com/...', form: f, setF })}
-      <div className="col-span-2">
-        <label className="block text-xs font-medium mb-1" style={{ color: UI.text }}>Descripción</label>
-        <textarea
-          className={inputClass}
-          style={{ ...inputStyle, resize: 'vertical' }}
-          rows={2}
-          placeholder="Detalles adicionales..."
-          value={f.description}
-          onChange={e => setF({ ...f, description: e.target.value })}
-        />
-      </div>
-    </div>
-  )
-
   return (
     <div className="space-y-4">
       {/* Add new event */}
       <div className={cardClass} style={cardStyle}>
         <h3 className="text-sm font-semibold mb-3" style={{ color: UI.dark }}>Añadir evento</h3>
-        <EventForm f={form} setF={setForm} />
+        <EventFormFields f={form} setF={setForm} />
         <button
           onClick={addEvent}
           disabled={saving || !form.name.trim() || !form.event_date}
@@ -184,7 +200,7 @@ export function EventosManager({
             <div key={ev.id} className={cardClass} style={cardStyle}>
               {editingId === ev.id ? (
                 <div className="space-y-3">
-                  <EventForm f={editForm} setF={setEditForm} />
+                  <EventFormFields f={editForm} setF={setEditForm} />
                   <div className="flex gap-2">
                     <button
                       onClick={saveEdit}
