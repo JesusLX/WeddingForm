@@ -4,7 +4,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useState } from 'react'
 
-const NAV_GROUPS = [
+type NavItem = {
+  href: string
+  label: string
+  icon: string
+  alsoActive?: string[]
+}
+
+const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
@@ -19,23 +26,14 @@ const NAV_GROUPS = [
       { href: '/dashboard/autobus', label: 'Autobús', icon: '🚌' },
       { href: '/dashboard/timeline', label: 'Programa del día', icon: '🕐' },
       { href: '/dashboard/faq', label: 'FAQ', icon: '❓' },
-      { href: '/dashboard/galeria', label: 'Galería', icon: '🖼️' },
-      { href: '/dashboard/paleta', label: 'Paleta de colores', icon: '🎨' },
-      { href: '/dashboard/spotify', label: 'Spotify', icon: '🎵' },
+      { href: '/dashboard/apariencia', label: 'Apariencia', icon: '🎨' },
     ],
   },
   {
     label: 'Invitados',
     items: [
-      { href: '/dashboard/lista', label: 'Lista de invitados', icon: '📋' },
-      { href: '/dashboard/invitados', label: 'Confirmaciones', icon: '✅' },
+      { href: '/dashboard/invitados', label: 'Invitados', icon: '👥', alsoActive: ['/dashboard/lista'] },
       { href: '/dashboard/mesas', label: 'Distribución de mesas', icon: '🪑' },
-    ],
-  },
-  {
-    label: 'Integraciones',
-    items: [
-      { href: '/dashboard/sheets', label: 'Google Sheets', icon: '📄' },
     ],
   },
 ]
@@ -112,7 +110,7 @@ function SidebarContent({
             )}
             <ul className="space-y-0.5">
               {group.items.map((item) => {
-                const active = pathname === item.href
+                const active = pathname === item.href || (item.alsoActive ?? []).includes(pathname)
                 return (
                   <li key={item.href}>
                     <Link

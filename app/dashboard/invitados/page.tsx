@@ -1,6 +1,7 @@
 import { requireWedding } from '@/lib/dashboard'
 import { pageTitleClass, pageTitleStyle } from '@/lib/ui'
 import { GuestTable } from './GuestTable'
+import { GuestTabs } from './GuestTabs'
 
 export default async function InvitadosPage() {
   const { supabase, wedding } = await requireWedding()
@@ -25,8 +26,9 @@ export default async function InvitadosPage() {
   return (
     <div>
       <h1 className={pageTitleClass} style={pageTitleStyle}>
-        Confirmaciones recibidas
+        Invitados
       </h1>
+      <GuestTabs active="confirmaciones" />
       <GuestTable
         responses={responses ?? []}
         menuOptions={menuOptions ?? []}
