@@ -259,6 +259,9 @@ export function GuestListManager({
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: '#2D2D2D' }}>{g.name}</p>
+                      <p className="text-xs" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
+                        {g.rsvp_response ? (g.rsvp_response.attendance ? '✅ Confirmado' : '❌ No asiste') : '⏳ Pendiente'}
+                      </p>
                       {(g.email || g.phone) && (
                         <p className="text-xs truncate" style={{ color: '#888' }}>
                           {[g.email, g.phone].filter(Boolean).join(' · ')}
@@ -266,9 +269,6 @@ export function GuestListManager({
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs hidden sm:inline" style={{ color: g.rsvp_response ? (g.rsvp_response.attendance ? '#4CAF50' : '#EF5350') : '#C9A84C' }}>
-                        {g.rsvp_response ? (g.rsvp_response.attendance ? '✅ Confirmado' : '❌ No asiste') : '⏳ Pendiente'}
-                      </span>
                       <button
                         onClick={() => startEdit(g)}
                         className="text-xs px-2 py-1 rounded-lg hover:opacity-70"
