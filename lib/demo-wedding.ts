@@ -66,6 +66,12 @@ export const demoWedding: Wedding = {
   tables_count: 10,
   tables_min_guests: 8,
   tables_max_guests: 10,
+  program_enabled: true,
+  program_custom_url: null,
+  reminder_enabled: false,
+  reminder_days_before: 7,
+  reminder_last_sent: null,
+  collab_gallery_enabled: false,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 }

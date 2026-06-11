@@ -74,6 +74,24 @@ const ICONS = {
       <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
     </Svg>
   ),
+  calendar: (
+    <Svg>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </Svg>
+  ),
+  camera: (
+    <Svg>
+      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </Svg>
+  ),
+  mail: (
+    <Svg>
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+      <path d="M22 6l-10 7L2 6" />
+    </Svg>
+  ),
 }
 
 type NavItem = {
@@ -97,6 +115,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: '/dashboard/menu', label: 'Menú', icon: ICONS.menu },
       { href: '/dashboard/autobus', label: 'Autobús', icon: ICONS.autobus },
       { href: '/dashboard/timeline', label: 'Programa del día', icon: ICONS.clock },
+      { href: '/dashboard/eventos', label: 'Eventos extra', icon: ICONS.calendar },
       { href: '/dashboard/faq', label: 'FAQ', icon: ICONS.faq },
       { href: '/dashboard/apariencia', label: 'Apariencia', icon: ICONS.apariencia },
     ],
@@ -105,6 +124,8 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     label: 'Invitados',
     items: [
       { href: '/dashboard/invitados', label: 'Invitados', icon: ICONS.invitados, alsoActive: ['/dashboard/lista'] },
+      { href: '/dashboard/galeria-colaborativa', label: 'Galería colaborativa', icon: ICONS.camera },
+      { href: '/dashboard/recordatorios', label: 'Recordatorios', icon: ICONS.mail },
       { href: '/dashboard/mesas', label: 'Distribución de mesas', icon: ICONS.mesas },
     ],
   },

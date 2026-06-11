@@ -49,8 +49,38 @@ export interface Wedding {
   tables_count: number | null
   tables_min_guests: number | null
   tables_max_guests: number | null
+  program_enabled: boolean
+  program_custom_url: string | null
+  reminder_enabled: boolean
+  reminder_days_before: number
+  reminder_last_sent: string | null
+  collab_gallery_enabled: boolean
   created_at: string
   updated_at: string
+}
+
+export interface WeddingEvent {
+  id: string
+  wedding_id: string
+  name: string
+  event_date: string
+  event_time: string | null
+  venue: string | null
+  address: string | null
+  maps_url: string | null
+  description: string | null
+  sort_order: number
+  created_at: string
+}
+
+export interface GuestPhoto {
+  id: string
+  wedding_id: string
+  photo_url: string
+  guest_name: string | null
+  caption: string | null
+  approved: boolean
+  created_at: string
 }
 
 export interface MenuOption {

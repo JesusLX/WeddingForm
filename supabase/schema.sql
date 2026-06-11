@@ -204,6 +204,93 @@ ALTER TABLE rsvp_responses ADD COLUMN IF NOT EXISTS bus_outbound TEXT;
 ALTER TABLE rsvp_responses ADD COLUMN IF NOT EXISTS bus_return TEXT;
 
 -- ============================================================
+-- FEATURE: PROGRAMA DEL DÍA PÚBLICO POR QR
+-- ============================================================
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS program_enabled BOOLEAN DEFAULT false;
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS program_custom_url TEXT;
+
+-- ============================================================
+-- FEATURE: RECORDATORIOS POR EMAIL
+-- ============================================================
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS reminder_enabled BOOLEAN DEFAULT false;
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS reminder_days_before INT DEFAULT 7;
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS reminder_last_sent TIMESTAMPTZ;
+
+-- ============================================================
+-- FEATURE: MÚLTIPLES EVENTOS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS wedding_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  event_date DATE NOT NULL,
+  event_time TIME,
+  venue TEXT,
+  address TEXT,
+  maps_url TEXT,
+  description TEXT,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE wedding_events ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'wedding_events' AND policyname = 'owner_all'
+  ) THEN
+    CREATE POLICY "owner_all" ON wedding_events FOR ALL
+      USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'wedding_events' AND policyname = 'public_read'
+  ) THEN
+    CREATE POLICY "public_read" ON wedding_events FOR SELECT
+      USING (wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
+  END IF;
+END $$;
+
+-- ============================================================
+-- FEATURE: GALERÍA COLABORATIVA DE INVITADOS
+-- ============================================================
+ALTER TABLE weddings ADD COLUMN IF NOT EXISTS collab_gallery_enabled BOOLEAN DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS guest_photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL,
+  photo_url TEXT NOT NULL,
+  guest_name TEXT,
+  caption TEXT,
+  approved BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE guest_photos ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'guest_photos' AND policyname = 'owner_all'
+  ) THEN
+    CREATE POLICY "owner_all" ON guest_photos FOR ALL
+      USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'guest_photos' AND policyname = 'public_insert'
+  ) THEN
+    CREATE POLICY "public_insert" ON guest_photos FOR INSERT
+      WITH CHECK (wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'guest_photos' AND policyname = 'public_read_approved'
+  ) THEN
+    CREATE POLICY "public_read_approved" ON guest_photos FOR SELECT
+      USING (approved = true AND wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
+  END IF;
+END $$;
+
+-- ============================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_updated_at()

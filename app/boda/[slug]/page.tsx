@@ -4,13 +4,15 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import type React from 'react'
-import type { Wedding, MenuOption, BusRoute } from '@/lib/types'
+import type { Wedding, MenuOption, BusRoute, WeddingEvent, GuestPhoto } from '@/lib/types'
 import { demoWedding, demoMenuOptions, demoBusRoutes } from '@/lib/demo-wedding'
 import { HeroSection } from './components/HeroSection'
 import { OurStorySection } from './components/OurStorySection'
 import { EventDetailsSection } from './components/EventDetailsSection'
+import { ExtraEventsSection } from './components/ExtraEventsSection'
 import { TimelineSection } from './components/TimelineSection'
 import { GallerySection } from './components/GallerySection'
+import { CollabGallerySection } from './components/CollabGallerySection'
 import { DressCodeSection } from './components/DressCodeSection'
 import { RSVPSection } from './components/RSVPSection'
 import { BankInfoSection } from './components/BankInfoSection'
@@ -77,6 +79,8 @@ export default async function WeddingPage({ params }: Props) {
   let wedding: Wedding
   let menuOptions: MenuOption[]
   let busRoutes: BusRoute[]
+  let extraEvents: WeddingEvent[] = []
+  let collabPhotos: GuestPhoto[] = []
 
   if (slug === 'demo') {
     wedding = demoWedding
@@ -94,12 +98,18 @@ export default async function WeddingPage({ params }: Props) {
     if (!data) notFound()
     wedding = data
 
-    const [{ data: menus }, { data: buses }] = await Promise.all([
+    const [{ data: menus }, { data: buses }, { data: events }, { data: photos }] = await Promise.all([
       supabase.from('menu_options').select('*').eq('wedding_id', wedding.id).order('sort_order'),
       supabase.from('bus_routes').select('id, direction, label, sort_order').eq('wedding_id', wedding.id).order('sort_order'),
+      supabase.from('wedding_events').select('*').eq('wedding_id', wedding.id).order('sort_order'),
+      wedding.collab_gallery_enabled
+        ? supabase.from('guest_photos').select('*').eq('wedding_id', wedding.id).eq('approved', true).order('created_at', { ascending: false }).limit(30)
+        : Promise.resolve({ data: [] }),
     ])
     menuOptions = menus ?? []
     busRoutes = (buses ?? []) as BusRoute[]
+    extraEvents = (events ?? []) as WeddingEvent[]
+    collabPhotos = (photos ?? []) as GuestPhoto[]
   }
 
   const footer = (
@@ -125,8 +135,10 @@ export default async function WeddingPage({ params }: Props) {
       <HeroSection wedding={wedding} />
       <OurStorySection wedding={wedding} />
       <EventDetailsSection wedding={wedding} />
+      <ExtraEventsSection events={extraEvents} />
       <TimelineSection wedding={wedding} />
       <GallerySection wedding={wedding} />
+      <CollabGallerySection photos={collabPhotos} slug={slug} />
       <DressCodeSection wedding={wedding} />
       <SpotifySection wedding={wedding} />
       <RSVPSection wedding={wedding} menuOptions={menuOptions} busRoutes={busRoutes} />
