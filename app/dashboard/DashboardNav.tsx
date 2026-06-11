@@ -112,8 +112,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     label: 'Tu boda',
     items: [
       { href: '/dashboard/configurar', label: 'Configurar', icon: ICONS.configurar },
-      { href: '/dashboard/menu', label: 'Menú', icon: ICONS.menu },
-      { href: '/dashboard/autobus', label: 'Autobús', icon: ICONS.autobus },
+      { href: '/dashboard/menu', label: 'Menú y autobús', icon: ICONS.menu, alsoActive: ['/dashboard/autobus'] },
       { href: '/dashboard/timeline', label: 'Programa del día', icon: ICONS.clock },
       { href: '/dashboard/eventos', label: 'Eventos extra', icon: ICONS.calendar },
       { href: '/dashboard/faq', label: 'FAQ', icon: ICONS.faq },

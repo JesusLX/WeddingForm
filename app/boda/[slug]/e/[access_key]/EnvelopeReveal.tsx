@@ -202,17 +202,13 @@ export function EnvelopeReveal({
           className="w-full max-w-sm text-center px-6 py-16 mx-auto"
           style={{ animation: 'card-in 0.75s cubic-bezier(0.2,0.85,0.4,1) forwards' }}
         >
-          {/* Interlocked rings */}
+          {/* Rings + heart */}
           <div className="flex justify-center mb-6">
-            <svg viewBox="0 0 86 44" width="90" height="44" fill="none">
-              <defs>
-                <mask id="ring-mask">
-                  <rect width="86" height="44" fill="white"/>
-                  <circle cx="30" cy="22" r="19" fill="black"/>
-                </mask>
-              </defs>
-              <circle cx="56" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7" mask="url(#ring-mask)"/>
-              <circle cx="30" cy="22" r="17" stroke="var(--w-primary)" strokeWidth="1.5" opacity="0.7"/>
+            <svg viewBox="0 0 24 24" width="72" height="72" fill="none"
+              stroke="var(--w-primary)" strokeLinejoin="round" strokeWidth="1.2" opacity="0.8">
+              <circle cx="8.5" cy="16.5" r="5.5" strokeLinecap="round"/>
+              <circle cx="15.5" cy="16.5" r="5.5" strokeLinecap="round"/>
+              <path d="M12 9s4-1.853 4-4.861C16 2.958 15.158 2 14 2c-.947 0-1.579.412-2 1.235C11.579 2.412 10.947 2 10 2c-1.158 0-2 .958-2 2.139C8 7.147 12 9 12 9Z"/>
             </svg>
           </div>
 
@@ -276,7 +272,7 @@ export function EnvelopeReveal({
           {/* Description */}
           {event.description && (
             <p className="text-sm leading-relaxed mb-6 italic" style={{ color: 'var(--w-dark)', opacity: 0.6, fontFamily: 'var(--font-playfair)' }}>
-              "{event.description}"
+              &ldquo;{event.description}&rdquo;
             </p>
           )}
 

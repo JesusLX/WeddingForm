@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const PALETTES = [
@@ -53,9 +53,9 @@ function ColorPickerField({
   const [hsl, setHsl] = useState<[number, number, number]>(() => hexToHsl(value))
   const ref = useRef<HTMLDivElement>(null)
 
-  // Re-sync when a preset is applied externally
-  useEffect(() => {
-    if (/^#[0-9A-Fa-f]{6}$/.test(value)) setHsl(hexToHsl(value))
+  const openPicker = useCallback(() => {
+    setHsl(hexToHsl(value))
+    setOpen(true)
   }, [value])
 
   function handleSlider(idx: 0 | 1 | 2, v: number) {
@@ -88,7 +88,7 @@ function ColorPickerField({
       <div className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid #F4D7D7' }}>
         <button
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => open ? setOpen(false) : openPicker()}
           className="w-10 h-10 rounded-lg border border-black/10 shadow-sm flex-shrink-0 transition-transform active:scale-95"
           style={{ backgroundColor: value }}
           aria-label={`Seleccionar color ${label}`}
