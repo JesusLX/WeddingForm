@@ -63,7 +63,7 @@ export interface WeddingEvent {
   id: string
   wedding_id: string
   name: string
-  event_date: string
+  event_date: string | null
   event_time: string | null
   venue: string | null
   address: string | null
@@ -71,6 +71,9 @@ export interface WeddingEvent {
   description: string | null
   sort_order: number
   access_key: string
+  is_secret: boolean
+  edit_key: string | null
+  secret_label: string | null
   created_at: string
 }
 

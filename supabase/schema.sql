@@ -244,14 +244,17 @@ DO $$ BEGIN
       USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
   END IF;
 END $$;
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'wedding_events' AND policyname = 'public_read'
-  ) THEN
-    CREATE POLICY "public_read" ON wedding_events FOR SELECT
-      USING (wedding_id IN (SELECT id FROM weddings WHERE is_published = true));
-  END IF;
-END $$;
+-- Public pages read events via the admin client (server only); the anon key
+-- must NOT read this table or it would leak access/edit keys of every event.
+DROP POLICY IF EXISTS "public_read" ON wedding_events;
+
+-- FEATURE: EVENTOS SECRETOS (despedidas, sorpresas)
+-- La pareja solo ve su etiqueta privada y los enlaces; los detalles los
+-- gestiona un organizador externo mediante edit_key (sin login, vía API).
+ALTER TABLE wedding_events ADD COLUMN IF NOT EXISTS is_secret BOOLEAN DEFAULT false;
+ALTER TABLE wedding_events ADD COLUMN IF NOT EXISTS edit_key UUID DEFAULT gen_random_uuid();
+ALTER TABLE wedding_events ADD COLUMN IF NOT EXISTS secret_label TEXT;
+ALTER TABLE wedding_events ALTER COLUMN event_date DROP NOT NULL;
 
 -- ============================================================
 -- FEATURE: GALERÍA COLABORATIVA DE INVITADOS

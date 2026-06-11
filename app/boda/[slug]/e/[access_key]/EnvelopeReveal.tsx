@@ -61,7 +61,7 @@ function EnvelopeSvg() {
 
 type EventData = {
   name: string
-  event_date: string
+  event_date: string | null
   event_time: string | null
   venue: string | null
   address: string | null
@@ -98,10 +98,12 @@ export function EnvelopeReveal({
     setTimeout(() => setPhase('revealed'), 900)
   }
 
-  const rawDate = new Date(event.event_date + 'T00:00:00').toLocaleDateString('es-ES', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
-  const dateStr = rawDate.charAt(0).toUpperCase() + rawDate.slice(1).toLowerCase()
+  const rawDate = event.event_date
+    ? new Date(event.event_date + 'T00:00:00').toLocaleDateString('es-ES', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      })
+    : null
+  const dateStr = rawDate ? rawDate.charAt(0).toUpperCase() + rawDate.slice(1).toLowerCase() : 'Fecha por confirmar'
   const timeStr = event.event_time ? event.event_time.slice(0, 5) : null
   const mapsHref = event.maps_url
     ? event.maps_url
