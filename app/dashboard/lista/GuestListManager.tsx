@@ -143,14 +143,14 @@ export function GuestListManager({
         {/* Add single guest */}
         <div className="flex flex-col sm:flex-row gap-2">
           <input value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre *" className={inputClass} style={{ ...inputStyle, flex: 2 }}
+            placeholder="Nombre *" className={inputClass + ' min-w-0'} style={{ ...inputStyle, flex: 2 }}
             onKeyDown={(e) => e.key === 'Enter' && addGuest()} />
           <input value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (opcional)" className={inputClass} style={{ ...inputStyle, flex: 2 }} />
+            placeholder="Email (opcional)" className={inputClass + ' min-w-0'} style={{ ...inputStyle, flex: 2 }} />
           <input value={phone} onChange={(e) => setPhone(e.target.value)}
-            placeholder="Teléfono" className={inputClass} style={{ ...inputStyle, flex: 1 }} />
+            placeholder="Teléfono" className={inputClass + ' min-w-0'} style={{ ...inputStyle, flex: 1 }} />
           <button onClick={addGuest} disabled={saving || !name.trim()}
-            className="px-4 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
+            className="px-4 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50 flex-shrink-0"
             style={{ backgroundColor: '#C9A84C' }}>
             Añadir
           </button>
@@ -202,12 +202,12 @@ export function GuestListManager({
                 style={{ backgroundColor: '#F9EEE8' }}
               >
                 {editingId === g.id ? (
-                  <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                  <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                     <input
                       value={editName}
                       onChange={e => setEditName(e.target.value)}
                       placeholder="Nombre *"
-                      className={editInputClass}
+                      className={editInputClass + ' min-w-0'}
                       style={{ ...inputStyle, flex: 2 }}
                       autoFocus
                       onKeyDown={e => {
@@ -219,17 +219,17 @@ export function GuestListManager({
                       value={editEmail}
                       onChange={e => setEditEmail(e.target.value)}
                       placeholder="Email"
-                      className={editInputClass}
+                      className={editInputClass + ' min-w-0'}
                       style={{ ...inputStyle, flex: 2 }}
                     />
                     <input
                       value={editPhone}
                       onChange={e => setEditPhone(e.target.value)}
                       placeholder="Teléfono"
-                      className={editInputClass}
+                      className={editInputClass + ' min-w-0'}
                       style={{ ...inputStyle, flex: 1 }}
                     />
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-shrink-0">
                       <button
                         onClick={() => saveEdit(g.id)}
                         disabled={!editName.trim()}
