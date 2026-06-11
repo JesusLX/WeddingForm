@@ -8,7 +8,7 @@ export default async function SheetsPage() {
   )
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Conectar Google Sheets
       </h1>

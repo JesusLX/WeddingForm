@@ -13,7 +13,7 @@ export default async function TimelinePage() {
   }>('id, event_timeline, program_enabled, program_custom_url, slug')
 
   return (
-    <div className="max-w-xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className={pageTitleClass} style={pageTitleStyle}>
           Programa del día
