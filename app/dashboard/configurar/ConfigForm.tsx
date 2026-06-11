@@ -115,7 +115,7 @@ export function ConfigForm({ wedding, userId }: { wedding: Wedding | null; userI
 
       {/* Ceremony */}
       <div className={sectionClass} style={sectionStyle}>
-        <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>Ceremonia</h2>
+        <h2 className="font-semibold text-sm" style={{ color: '#2D2D2D' }}>{form.same_venue ? 'Evento' : 'Ceremonia'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass} style={labelStyle}>Hora</label>

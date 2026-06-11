@@ -33,14 +33,6 @@ const ICONS = {
       <path d="M9 12h6M9 16h4" />
     </Svg>
   ),
-  autobus: (
-    <Svg>
-      <rect x="1" y="6" width="22" height="14" rx="2" />
-      <path d="M16 6V4a2 2 0 00-2-2H10a2 2 0 00-2 2v2" />
-      <path d="M1 12h22M7 20v-2M17 20v-2" />
-      <circle cx="6.5" cy="16" r="1" /><circle cx="17.5" cy="16" r="1" />
-    </Svg>
-  ),
   clock: (
     <Svg>
       <circle cx="12" cy="12" r="10" />
@@ -92,6 +84,18 @@ const ICONS = {
       <path d="M22 6l-10 7L2 6" />
     </Svg>
   ),
+  spotify: (
+    <Svg>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 14.5c2.5-1 5.5-1 8 0M7.5 11c3-1.2 6.5-1.2 9 0M8.5 7.5c2.5-.8 5.5-.8 7.5 0" strokeLinecap="round" />
+    </Svg>
+  ),
+  sheets: (
+    <Svg>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+    </Svg>
+  ),
 }
 
 type NavItem = {
@@ -111,12 +115,29 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: 'Tu boda',
     items: [
-      { href: '/dashboard/configurar', label: 'Configurar', icon: ICONS.configurar },
-      { href: '/dashboard/menu', label: 'Menú y autobús', icon: ICONS.menu, alsoActive: ['/dashboard/autobus'] },
-      { href: '/dashboard/timeline', label: 'Programa del día', icon: ICONS.clock },
+      { href: '/dashboard/configurar', label: 'Formulario', icon: ICONS.configurar },
       { href: '/dashboard/eventos', label: 'Eventos extra', icon: ICONS.calendar },
       { href: '/dashboard/faq', label: 'FAQ', icon: ICONS.faq },
-      { href: '/dashboard/apariencia', label: 'Apariencia', icon: ICONS.apariencia },
+    ],
+  },
+  {
+    label: 'Planificación',
+    items: [
+      { href: '/dashboard/menu', label: 'Menú y autobús', icon: ICONS.menu, alsoActive: ['/dashboard/autobus'] },
+      { href: '/dashboard/timeline', label: 'Programa del día', icon: ICONS.clock },
+    ],
+  },
+  {
+    label: 'Media',
+    items: [
+      { href: '/dashboard/apariencia', label: 'Fotos', icon: ICONS.apariencia },
+      { href: '/dashboard/spotify', label: 'Spotify', icon: ICONS.spotify },
+    ],
+  },
+  {
+    label: 'Conexiones',
+    items: [
+      { href: '/dashboard/sheets', label: 'Google Sheets', icon: ICONS.sheets },
     ],
   },
   {
