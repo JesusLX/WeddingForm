@@ -7,6 +7,7 @@ import { DEMO_WEDDING_ID } from '@/lib/demo-wedding'
 
 const schema = z.object({
   wedding_id: z.string().uuid(),
+  rsvp_id: z.string().uuid().optional(),
   guest_name: z.string().min(2).max(200),
   attendance: z.enum(['yes', 'no']),
   adults_count: z.coerce.number().min(1).max(20).optional(),
@@ -103,25 +104,53 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const rsvpPayload = {
+      guest_name: data.guest_name,
+      attendance,
+      adults_count: attendance ? (data.adults_count ?? 1) : 0,
+      adult_names: attendance ? (data.adult_names ?? []).map(n => n.trim()).filter(Boolean) : [],
+      adult_menus: attendance ? (data.adult_menus ?? []).filter(s => s !== '') : [],
+      has_children: attendance ? hasChildren : false,
+      children_count: attendance && hasChildren ? (data.children_count ?? 0) : 0,
+      children_names: attendance && hasChildren ? (data.children_names ?? []).map(n => n.trim()) : [],
+      children_menus: attendance && hasChildren ? (data.children_menus ?? []) : [],
+      bus_outbound: attendance ? (data.bus_outbound || null) : null,
+      bus_return: attendance ? (data.bus_return || null) : null,
+      allergies: data.allergies || null,
+      song_request: data.song_request || null,
+      message: data.message || null,
+    }
+
+    // UPDATE path — when rsvp_id is provided
+    if (data.rsvp_id) {
+      const { data: existing, error: findError } = await supabase
+        .from('rsvp_responses')
+        .select('id')
+        .eq('id', data.rsvp_id)
+        .eq('wedding_id', data.wedding_id)
+        .single()
+
+      if (findError || !existing) {
+        return NextResponse.json({ error: 'Confirmación no encontrada' }, { status: 404 })
+      }
+
+      const { error: updateError } = await supabase
+        .from('rsvp_responses')
+        .update(rsvpPayload)
+        .eq('id', data.rsvp_id)
+
+      if (updateError) {
+        console.error('Supabase update error:', updateError)
+        return NextResponse.json({ error: 'Error al actualizar la respuesta' }, { status: 500 })
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+
+    // INSERT path — new RSVP
     const { data: response, error: insertError } = await supabase
       .from('rsvp_responses')
-      .insert({
-        wedding_id: data.wedding_id,
-        guest_name: data.guest_name,
-        attendance,
-        adults_count: attendance ? (data.adults_count ?? 1) : 0,
-        adult_names: attendance ? (data.adult_names ?? []).map(n => n.trim()).filter(Boolean) : [],
-        adult_menus: attendance ? (data.adult_menus ?? []).filter(s => s !== '') : [],
-        has_children: attendance ? hasChildren : false,
-        children_count: attendance && hasChildren ? (data.children_count ?? 0) : 0,
-        children_names: attendance && hasChildren ? (data.children_names ?? []).map(n => n.trim()) : [],
-        children_menus: attendance && hasChildren ? (data.children_menus ?? []) : [],
-        bus_outbound: attendance ? (data.bus_outbound || null) : null,
-        bus_return: attendance ? (data.bus_return || null) : null,
-        allergies: data.allergies || null,
-        song_request: data.song_request || null,
-        message: data.message || null,
-      })
+      .insert({ wedding_id: data.wedding_id, ...rsvpPayload })
       .select()
       .single()
 

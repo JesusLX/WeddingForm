@@ -21,6 +21,24 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 type Status = 'idle' | 'submitting' | 'success' | 'error'
 
+export type RsvpInitialData = {
+  id: string
+  guest_name: string
+  attendance: boolean
+  adults_count: number
+  adult_names: string[] | null
+  adult_menus: string[] | null
+  has_children: boolean
+  children_count: number | null
+  children_names: string[] | null
+  children_menus: (string | null)[] | null
+  bus_outbound: string | null
+  bus_return: string | null
+  allergies: string | null
+  song_request: string | null
+  message: string | null
+}
+
 const radioClass = 'flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:border-amber-300 text-center'
 const busOptionClass = 'flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:border-amber-300'
 
@@ -53,15 +71,40 @@ function MenuGrid({
   )
 }
 
-export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding; menuOptions: MenuOption[]; busRoutes: BusRoute[] }) {
+export function RSVPForm({ wedding, menuOptions, busRoutes, initialData }: { wedding: Wedding; menuOptions: MenuOption[]; busRoutes: BusRoute[]; initialData?: RsvpInitialData }) {
   const [status, setStatus] = useState<Status>('idle')
-  const [adultMenus, setAdultMenus] = useState<string[]>([''])
-  const [adultNames, setAdultNames] = useState<string[]>([''])
-  const [adultAllergies, setAdultAllergies] = useState<string[]>([''])
-  const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string; allergies: string }[]>([])
-  const [needsBus, setNeedsBus] = useState<'' | 'yes' | 'no'>('')
-  const [busOutbound, setBusOutbound] = useState('')
-  const [busReturn, setBusReturn] = useState('')
+  const [adultMenus, setAdultMenus] = useState<string[]>(() => {
+    if (!initialData) return ['']
+    const arr = [...(initialData.adult_menus ?? [])]
+    while (arr.length < Math.max(1, initialData.adults_count)) arr.push('')
+    return arr
+  })
+  const [adultNames, setAdultNames] = useState<string[]>(() => {
+    if (!initialData) return ['']
+    const arr = [...(initialData.adult_names ?? [initialData.guest_name])]
+    while (arr.length < Math.max(1, initialData.adults_count)) arr.push('')
+    return arr
+  })
+  const [adultAllergies, setAdultAllergies] = useState<string[]>(() => {
+    if (!initialData) return ['']
+    const arr = Array<string>(Math.max(1, initialData.adults_count)).fill('')
+    arr[0] = initialData.allergies ?? ''
+    return arr
+  })
+  const [childrenData, setChildrenData] = useState<{ name: string; wantsMenu: boolean; menuId: string; allergies: string }[]>(() => {
+    if (!initialData?.has_children) return []
+    return (initialData.children_names ?? []).map((name, i) => ({
+      name,
+      wantsMenu: !!(initialData.children_menus?.[i]),
+      menuId: initialData.children_menus?.[i] ?? '',
+      allergies: '',
+    }))
+  })
+  const [needsBus, setNeedsBus] = useState<'' | 'yes' | 'no'>(() =>
+    initialData?.bus_outbound || initialData?.bus_return ? 'yes' : ''
+  )
+  const [busOutbound, setBusOutbound] = useState(initialData?.bus_outbound ?? '')
+  const [busReturn, setBusReturn] = useState(initialData?.bus_return ?? '')
   const [hp, setHp] = useState('')
   const loadedAt = useRef(0)
   useEffect(() => { loadedAt.current = Date.now() }, [])
@@ -71,7 +114,15 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { adults_count: 1 },
+    defaultValues: initialData ? {
+      guest_name: initialData.guest_name,
+      attendance: initialData.attendance ? 'yes' : 'no',
+      adults_count: initialData.adults_count,
+      has_children: initialData.has_children ? 'yes' : 'no',
+      children_count: initialData.children_count ?? 0,
+      song_request: initialData.song_request ?? '',
+      message: initialData.message ?? '',
+    } : { adults_count: 1 },
   })
 
   const attendance = watch('attendance')
@@ -145,6 +196,7 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
         body: JSON.stringify({
           ...values,
           wedding_id: wedding.id,
+          rsvp_id: initialData?.id,
           adult_names: isAttending && adultsCount > 1
             ? [values.guest_name, ...adultNames.slice(1).map(n => n.trim()).filter(Boolean)]
             : [],
@@ -189,9 +241,11 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
       <div className="text-center py-12">
         <div className="text-5xl mb-4">💌</div>
         <h3 className="text-2xl mb-3" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--w-dark)' }}>
-          ¡Gracias por confirmar!
+          {initialData ? '¡Confirmación actualizada!' : '¡Gracias por confirmar!'}
         </h3>
-        <p style={{ color: '#555555' }}>Hemos recibido tu respuesta. ¡Nos vemos el gran día!</p>
+        <p style={{ color: '#555555' }}>
+          {initialData ? 'Hemos actualizado tu respuesta. ¡Nos vemos el gran día!' : 'Hemos recibido tu respuesta. ¡Nos vemos el gran día!'}
+        </p>
       </div>
     )
   }
