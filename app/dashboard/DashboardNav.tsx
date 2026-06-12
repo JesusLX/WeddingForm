@@ -139,7 +139,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: 'Media',
     items: [
-      { href: '/dashboard/apariencia', label: 'Fotos', icon: ICONS.apariencia },
+      { href: '/dashboard/apariencia', label: 'Apariencia', icon: ICONS.apariencia },
       { href: '/dashboard/spotify', label: 'Spotify', icon: ICONS.spotify },
     ],
   },

@@ -15,7 +15,7 @@ export default async function SpotifyPage() {
     .single<{ spotify_description: string | null }>()
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Playlist de Spotify
       </h1>

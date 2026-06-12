@@ -132,6 +132,7 @@ export function GuestTable({
   const [deleting, setDeleting] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [openMsg, setOpenMsg] = useState<string | null>(null)
 
   function showError(message: string) {
     setErrorMsg(message)
@@ -340,7 +341,28 @@ export function GuestTable({
                             <span title="Nombre duplicado — posible doble registro" className="text-xs flex-shrink-0">⚠️</span>
                           )}
                           {row.isGroupFirst && row.message && (
-                            <span title={row.message} className="cursor-help text-xs flex-shrink-0" style={{ color: '#C9A84C' }}>💌</span>
+                            <span className="relative flex-shrink-0">
+                              <button
+                                onClick={() => setOpenMsg(openMsg === row.rsvpId ? null : row.rsvpId)}
+                                className="text-xs leading-none"
+                                style={{ color: '#C9A84C' }}
+                                title="Ver mensaje"
+                              >
+                                💌
+                              </button>
+                              {openMsg === row.rsvpId && (
+                                <div
+                                  className="absolute left-0 top-6 z-20 rounded-xl p-3 shadow-lg text-xs w-56"
+                                  style={{ backgroundColor: 'white', border: '1px solid #F4D7D7', color: '#2D2D2D' }}
+                                >
+                                  <button
+                                    onClick={() => setOpenMsg(null)}
+                                    className="absolute top-1 right-2 text-gray-400 hover:text-gray-600"
+                                  >✕</button>
+                                  <p className="pr-4 leading-relaxed">{row.message}</p>
+                                </div>
+                              )}
+                            </span>
                           )}
                         </div>
                       </td>

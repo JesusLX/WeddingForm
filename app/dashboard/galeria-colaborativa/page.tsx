@@ -18,7 +18,7 @@ export default async function GaleriaColabPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Galería colaborativa
       </h1>

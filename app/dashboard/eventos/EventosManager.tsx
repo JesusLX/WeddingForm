@@ -86,16 +86,25 @@ export function EventosManager({
   const [saving, setSaving]     = useState(false)
   const [message, setMessage]   = useState('')
   const [copied, setCopied]     = useState<string | null>(null)
+  const [secretLabel, setSecretLabel] = useState('')
   const supabase = createClient()
 
   function eventUrl(accessKey: string) {
     return `${window.location.origin}/boda/${weddingSlug}/e/${accessKey}`
   }
 
-  async function copyUrl(accessKey: string) {
-    await navigator.clipboard.writeText(eventUrl(accessKey))
-    setCopied(accessKey)
+  function organizerUrl(editKey: string) {
+    return `${window.location.origin}/boda/${weddingSlug}/organizar/${editKey}`
+  }
+
+  async function copyText(text: string, copyId: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(copyId)
     setTimeout(() => setCopied(null), 2000)
+  }
+
+  async function copyUrl(accessKey: string) {
+    await copyText(eventUrl(accessKey), accessKey)
   }
 
   function showMsg(msg: string) {
@@ -132,7 +141,7 @@ export function EventosManager({
     setEditingId(ev.id)
     setEditForm({
       name:        ev.name,
-      event_date:  ev.event_date,
+      event_date:  ev.event_date ?? '',
       event_time:  ev.event_time ?? '',
       venue:       ev.venue ?? '',
       address:     ev.address ?? '',
@@ -173,6 +182,32 @@ export function EventosManager({
     setEvents(events.filter(ev => ev.id !== id))
   }
 
+  async function addSecretEvent() {
+    if (!secretLabel.trim()) return
+    setSaving(true)
+    const { data, error } = await supabase
+      .from('wedding_events')
+      .insert({
+        wedding_id: weddingId,
+        name: 'Evento secreto',
+        is_secret: true,
+        secret_label: secretLabel.trim(),
+        sort_order: events.length,
+      })
+      .select('id, wedding_id, sort_order, access_key, is_secret, edit_key, secret_label, created_at')
+      .single()
+    setSaving(false)
+    if (error || !data) { showMsg('Error al crear el evento secreto'); return }
+    setEvents([...events, {
+      ...data,
+      name: 'Evento secreto',
+      event_date: null, event_time: null,
+      venue: null, address: null, maps_url: null, description: null,
+    } as WeddingEvent])
+    setSecretLabel('')
+    showMsg('Evento secreto creado')
+  }
+
   return (
     <div className="space-y-4">
       {/* Add new event */}
@@ -189,6 +224,34 @@ export function EventosManager({
         </button>
       </div>
 
+      {/* Add secret event */}
+      <div className={cardClass} style={cardStyle}>
+        <h3 className="text-sm font-semibold mb-1" style={{ color: UI.dark }}>🔒 Crear evento secreto</h3>
+        <p className="text-xs mb-3" style={{ color: UI.muted }}>
+          Para despedidas y sorpresas: tú no podrás ver los detalles. Dale el enlace de
+          organización a una persona de confianza para que los rellene, y comparte el
+          enlace de invitación con los asistentes.
+        </p>
+        <div className="flex gap-2">
+          <input
+            value={secretLabel}
+            onChange={e => setSecretLabel(e.target.value)}
+            placeholder="Etiqueta para ti (ej: Despedida de Ana)"
+            className={inputClass + ' min-w-0 flex-1'}
+            style={inputStyle}
+            onKeyDown={e => e.key === 'Enter' && addSecretEvent()}
+          />
+          <button
+            onClick={addSecretEvent}
+            disabled={saving || !secretLabel.trim()}
+            className={`${primaryButtonClass} flex-shrink-0`}
+            style={{ ...primaryButtonStyle, backgroundColor: UI.dark }}
+          >
+            Crear
+          </button>
+        </div>
+      </div>
+
       {/* Event list */}
       {events.length === 0 ? (
         <p className="text-sm text-center py-6" style={{ color: UI.muted }}>
@@ -198,7 +261,43 @@ export function EventosManager({
         <div className="space-y-3">
           {events.map(ev => (
             <div key={ev.id} className={cardClass} style={cardStyle}>
-              {editingId === ev.id ? (
+              {ev.is_secret ? (
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm" style={{ color: UI.dark }}>
+                      🔒 {ev.secret_label || 'Evento secreto'}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: UI.muted }}>
+                      Los detalles son secretos: los gestiona quien tenga el enlace de organización.
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {ev.edit_key && (
+                        <button
+                          onClick={() => copyText(organizerUrl(ev.edit_key!), `edit-${ev.id}`)}
+                          className="text-xs px-3 py-1.5 rounded-lg"
+                          style={{ color: 'white', backgroundColor: UI.dark }}
+                        >
+                          {copied === `edit-${ev.id}` ? 'Copiado ✓' : '🔑 Copiar enlace de organización'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => copyText(eventUrl(ev.access_key), `share-${ev.id}`)}
+                        className="text-xs px-3 py-1.5 rounded-lg"
+                        style={{ color: UI.primary, backgroundColor: `${UI.primary}15` }}
+                      >
+                        {copied === `share-${ev.id}` ? 'Copiado ✓' : '💌 Copiar invitación'}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => deleteEvent(ev.id)}
+                    className="text-xs px-3 py-1.5 rounded-lg flex-shrink-0"
+                    style={{ color: UI.error, backgroundColor: `${UI.error}20` }}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ) : editingId === ev.id ? (
                 <div className="space-y-3">
                   <EventFormFields f={editForm} setF={setEditForm} />
                   <div className="flex gap-2">
@@ -223,10 +322,12 @@ export function EventosManager({
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm" style={{ color: UI.dark }}>{ev.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: UI.primary }}>
-                      {new Date(ev.event_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                      {ev.event_time ? ` · ${ev.event_time.slice(0, 5)}` : ''}
-                    </p>
+                    {ev.event_date && (
+                      <p className="text-xs mt-0.5" style={{ color: UI.primary }}>
+                        {new Date(ev.event_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                        {ev.event_time ? ` · ${ev.event_time.slice(0, 5)}` : ''}
+                      </p>
+                    )}
                     {ev.venue && <p className="text-xs mt-0.5" style={{ color: UI.text }}>{ev.venue}</p>}
                     {ev.description && <p className="text-xs mt-1 line-clamp-2" style={{ color: UI.muted }}>{ev.description}</p>}
                     {ev.access_key && (

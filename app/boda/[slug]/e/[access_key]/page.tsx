@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase-server'
 import type React from 'react'
 import { EnvelopeReveal } from './EnvelopeReveal'
 
@@ -20,7 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq('is_published', true)
     .single()
   if (!wedding) return { title: 'Invitación' }
-  const { data: event } = await supabase
+  // wedding_events has no anon read policy (keys must stay private) — use admin
+  const { data: event } = await createAdminClient()
     .from('wedding_events')
     .select('name')
     .eq('access_key', access_key)
@@ -45,7 +46,8 @@ export default async function EventPage({ params }: Props) {
 
   if (!wedding) notFound()
 
-  const { data: event } = await supabase
+  // wedding_events has no anon read policy (keys must stay private) — use admin
+  const { data: event } = await createAdminClient()
     .from('wedding_events')
     .select('name, event_date, event_time, venue, address, maps_url, description')
     .eq('wedding_id', wedding.id)

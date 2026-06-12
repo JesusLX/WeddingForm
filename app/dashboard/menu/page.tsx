@@ -9,7 +9,7 @@ export default async function MenuPage() {
     .from('menu_options').select('*').eq('wedding_id', wedding.id).order('sort_order')
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <h1 className={pageTitleClass} style={pageTitleStyle}>
         Menú
       </h1>
