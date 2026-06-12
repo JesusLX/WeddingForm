@@ -118,16 +118,19 @@ export function GuestTable({
   responses,
   menuOptions,
   expectedGuests,
+  weddingSlug,
 }: {
   responses: Response[]
   menuOptions: MenuRef[]
   expectedGuests: GuestRef[]
+  weddingSlug: string
 }) {
   const [tab, setTab] = useState<'all' | 'confirmed' | 'declined'>('all')
   const [search, setSearch] = useState('')
   const [items, setItems] = useState<Response[]>(responses)
   const [guests, setGuests] = useState<GuestRef[]>(expectedGuests)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
 
   function showError(message: string) {
@@ -420,16 +423,31 @@ export function GuestTable({
                       <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: '#888', fontSize: 11 }}>
                         {row.isGroupFirst ? format(new Date(row.submittedAt), 'dd/MM/yy HH:mm') : null}
                       </td>
-                      {/* Delete */}
+                      {/* Actions */}
                       <td className="px-4 py-2.5">
-                        <button
-                          onClick={() => handleDeletePerson(row)}
-                          disabled={deleting === row.personKey}
-                          title="Eliminar persona"
-                          className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-40"
-                          style={{ color: '#C62828', backgroundColor: '#FFEBEE' }}>
-                          {deleting === row.personKey ? '...' : '🗑'}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {row.isGroupFirst && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/boda/${weddingSlug}/r/${row.rsvpId}`)
+                                setCopied(row.rsvpId)
+                                setTimeout(() => setCopied(null), 2000)
+                              }}
+                              title="Copiar enlace para que el invitado pueda modificar su confirmación"
+                              className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70"
+                              style={{ color: copied === row.rsvpId ? '#4CAF50' : '#C9A84C', backgroundColor: copied === row.rsvpId ? '#E8F5E9' : '#C9A84C22' }}>
+                              {copied === row.rsvpId ? '✓' : '🔗'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeletePerson(row)}
+                            disabled={deleting === row.personKey}
+                            title="Eliminar persona"
+                            className="text-xs px-2 py-1 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-40"
+                            style={{ color: '#C62828', backgroundColor: '#FFEBEE' }}>
+                            {deleting === row.personKey ? '...' : '🗑'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

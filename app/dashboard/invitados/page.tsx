@@ -4,7 +4,7 @@ import { GuestTable } from './GuestTable'
 import { GuestTabs } from './GuestTabs'
 
 export default async function InvitadosPage() {
-  const { supabase, wedding } = await requireWedding()
+  const { supabase, wedding } = await requireWedding<{ slug: string }>('id, slug')
 
   const [{ data: responses }, { data: menuOptions }, { data: expectedGuests }] = await Promise.all([
     supabase
@@ -33,6 +33,7 @@ export default async function InvitadosPage() {
         responses={responses ?? []}
         menuOptions={menuOptions ?? []}
         expectedGuests={expectedGuests ?? []}
+        weddingSlug={wedding.slug}
       />
     </div>
   )

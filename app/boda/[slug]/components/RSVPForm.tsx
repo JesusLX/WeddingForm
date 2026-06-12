@@ -423,9 +423,10 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
                           <label
                             key={route.id}
                             className={busOptionClass}
+                            onClick={e => { e.preventDefault(); setBusOutbound(p => p === route.label ? '' : route.label) }}
                             style={{ borderColor: busOutbound === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busOutbound === route.label ? 'var(--w-bg)' : 'white' }}
                           >
-                            <input type="radio" checked={busOutbound === route.label} onChange={() => setBusOutbound(route.label)} className="sr-only" />
+                            <input type="radio" checked={busOutbound === route.label} onChange={() => {}} className="sr-only" />
                             <span className="text-lg">🚌</span>
                             <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
                           </label>
@@ -441,9 +442,10 @@ export function RSVPForm({ wedding, menuOptions, busRoutes }: { wedding: Wedding
                           <label
                             key={route.id}
                             className={busOptionClass}
+                            onClick={e => { e.preventDefault(); setBusReturn(p => p === route.label ? '' : route.label) }}
                             style={{ borderColor: busReturn === route.label ? 'var(--w-primary)' : 'var(--w-accent)', backgroundColor: busReturn === route.label ? 'var(--w-bg)' : 'white' }}
                           >
-                            <input type="radio" checked={busReturn === route.label} onChange={() => setBusReturn(route.label)} className="sr-only" />
+                            <input type="radio" checked={busReturn === route.label} onChange={() => {}} className="sr-only" />
                             <span className="text-lg">🚌</span>
                             <span className="text-sm font-medium" style={{ color: 'var(--w-dark)' }}>{route.label}</span>
                           </label>
