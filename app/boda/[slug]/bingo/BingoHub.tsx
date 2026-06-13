@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import type React from 'react'
 import { gridDim, SPANISH_CARD_SIZE, type BingoCellType, type BingoStatus } from '@/lib/bingo'
 
-type Session = { playerId: string; name: string; card: (string | null)[] }
+// cellType is stored in the session to detect mode changes (e.g. numbers → emojis).
+type Session = { playerId: string; name: string; card: (string | null)[]; cellType: BingoCellType }
 
 const CONFETTI_COLORS = ['#C9A84C', '#FFD700', '#F4D7D7', '#FFC0CB', '#E8D5B7', '#ffffff', '#FFB347', '#A8D8EA']
 
@@ -62,8 +63,10 @@ export function BingoHub({
     try {
       const s = JSON.parse(raw) as Session
       if (!s.playerId || !Array.isArray(s.card)) return
-      // Invalidate stale sessions from old square-grid format
-      if (cellType === 'numbers' && s.card.length !== SPANISH_CARD_SIZE) {
+      // Discard session if the game mode changed since the player last joined.
+      if (s.cellType !== cellType) { localStorage.removeItem(storageKey); return }
+      // Also discard malformed Spanish cards (wrong length for numbers mode).
+      if (cellType === 'numbers' && s.card.length % SPANISH_CARD_SIZE !== 0) {
         localStorage.removeItem(storageKey)
         return
       }
@@ -120,7 +123,7 @@ export function BingoHub({
     const json = await res.json()
     setJoining(false)
     if (!res.ok || json.error) { setError(json.error ?? 'No se pudo unir'); return }
-    const s: Session = { playerId: json.player_id, name: json.name, card: json.card }
+    const s: Session = { playerId: json.player_id, name: json.name, card: json.card, cellType }
     localStorage.setItem(storageKey, JSON.stringify(s))
     setSession(s)
     setDrawn(json.game?.drawn ?? [])
