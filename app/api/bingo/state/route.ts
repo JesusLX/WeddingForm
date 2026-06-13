@@ -21,17 +21,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No disponible' }, { status: 404 })
   }
 
-  // If the guest passes their player_id, verify they still exist in the DB.
-  // After a reset the row is deleted, so player_exists=false triggers a re-join.
+  // If the guest passes their player_id, return their current card so the
+  // client can detect card regeneration (reset with names preserved).
   let player_exists = true
+  let player_card: (string | null)[] | null = null
   if (playerId) {
     const { data: player } = await supabase
       .from('bingo_players')
-      .select('id')
+      .select('id, card')
       .eq('id', playerId)
       .eq('game_id', game.id)
       .single()
     player_exists = !!player
+    if (player) player_card = player.card as (string | null)[]
   }
 
   return NextResponse.json({
@@ -41,5 +43,6 @@ export async function GET(req: NextRequest) {
     card_size: game.card_size,
     paused_for_claim: !!game.pending_claim,
     player_exists,
+    player_card,
   })
 }

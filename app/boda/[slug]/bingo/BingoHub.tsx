@@ -107,6 +107,24 @@ export function BingoHub({
 
       setDrawn(json.drawn ?? [])
       setStatus(json.status)
+
+      // If the server returns a different card (reset with name preservation),
+      // update the session and clear marks so the guest sees their new card.
+      const serverCard = json.player_card as (string | null)[] | null
+      if (serverCard && JSON.stringify(serverCard) !== JSON.stringify(session!.card)) {
+        const updated = { ...session!, card: serverCard }
+        localStorage.setItem(storageKey, JSON.stringify(updated))
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSession(updated)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMarked([])
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setHasLine(false)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setHasBingo(false)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setBanner(null)
+      }
     }
     run()
     const t = setInterval(run, 2500)

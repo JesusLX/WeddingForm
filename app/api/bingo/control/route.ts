@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { buildPool, shuffle } from '@/lib/bingo'
+import { buildPool, shuffle, generateSpanishCard, generateCard } from '@/lib/bingo'
 
 const schema = z.object({
   action: z.enum(['start', 'draw', 'continue', 'pause', 'end', 'reset']),
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     // RLS (owner_all) guarantees this row belongs to the authenticated couple.
     const { data: game } = await supabase
       .from('bingo_games')
-      .select('id, cell_type, card_size, number_max, items, drawn, status, fast_mode, fast_pool, fast_pool_extras')
+      .select('id, cell_type, card_size, number_max, items, drawn, status, fast_mode, fast_pool, fast_pool_extras, cards_per_player')
       .single()
 
     if (!game) return NextResponse.json({ error: 'Juego no encontrado' }, { status: 404 })
@@ -56,13 +56,33 @@ export async function POST(req: NextRequest) {
       case 'end':
         patch = { status: 'finished', pending_claim: null }
         break
-      case 'reset':
-        await supabase.from('bingo_players').delete().eq('game_id', game.id)
+      case 'reset': {
+        // Keep player names but give everyone a fresh card for the next game.
+        const { data: existingPlayers } = await supabase
+          .from('bingo_players')
+          .select('id')
+          .eq('game_id', game.id)
+        const numCards: number = game.cards_per_player ?? 1
+        const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
+        for (const p of existingPlayers ?? []) {
+          const newCard = game.cell_type === 'numbers'
+            ? Array.from({ length: numCards }, () => generateSpanishCard()).flat()
+            : pool.length > 0
+              ? Array.from({ length: numCards }, () => generateCard(pool, game.card_size)).flat()
+              : null
+          if (newCard) {
+            await supabase
+              .from('bingo_players')
+              .update({ card: newCard, marked: [], has_line: false, has_bingo: false })
+              .eq('id', p.id)
+          }
+        }
         patch = {
           status: 'lobby', drawn: [], pending_claim: null,
           line_awarded: false, bingo_awarded: false, fast_pool: [],
         }
         break
+      }
       case 'draw': {
         const fastPool: string[] = game.fast_pool ?? []
         const pool = (game.fast_mode && fastPool.length > 0)
