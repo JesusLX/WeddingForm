@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import type React from 'react'
 import { gridDim, type BingoCellType, type BingoStatus } from '@/lib/bingo'
 
-type Session = { playerId: string; name: string; card: string[] }
+type Session = { playerId: string; name: string; card: (string | null)[] }
 
 const CONFETTI_COLORS = ['#C9A84C', '#FFD700', '#F4D7D7', '#FFC0CB', '#E8D5B7', '#ffffff', '#FFB347', '#A8D8EA']
 
@@ -103,6 +103,7 @@ export function BingoHub({
   async function tapCell(index: number) {
     if (!session || status !== 'playing') return
     const value = session.card[index]
+    if (value === null) return  // blank cell on Spanish card
     if (!marked.includes(index) && !drawnSet.has(value)) {
       // Not drawn yet — reject with a shake
       setShake(index)
@@ -217,44 +218,86 @@ export function BingoHub({
           </div>
         )}
 
-        {/* Card */}
-        <div className="grid gap-2 mx-auto" style={{ gridTemplateColumns: `repeat(${dim}, 1fr)`, maxWidth: dim * 92 }}>
-          {session.card.map((value, i) => {
-            const isMarked = marked.includes(i)
-            const isDrawable = drawnSet.has(value) && !isMarked && status === 'playing'
-            return (
-              <button
-                key={i}
-                onClick={() => tapCell(i)}
-                className="relative aspect-square rounded-xl flex items-center justify-center font-semibold transition-all overflow-visible"
-                style={{
-                  backgroundColor: isMarked ? 'var(--w-primary)' : 'white',
-                  color: isMarked ? 'white' : 'var(--w-dark)',
-                  border: `2px solid ${isMarked ? 'var(--w-primary)' : isDrawable ? 'var(--w-primary)' : 'var(--w-accent)'}`,
-                  boxShadow: isDrawable ? '0 0 0 3px color-mix(in srgb, var(--w-primary) 30%, transparent)' : 'none',
-                  animation: shake === i ? 'cell-shake 0.4s' : undefined,
-                  fontSize: cellType === 'emojis' ? '1.6rem' : '1.1rem',
-                }}
-              >
-                {cellType === 'photos'
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={value} alt="" className="absolute inset-0 w-full h-full object-cover rounded-[10px]" style={{ opacity: isMarked ? 0.45 : 1 }} />
-                  : value}
-                {isMarked && cellType === 'photos' && <span className="relative text-white text-2xl">✓</span>}
+        {/* Card — Spanish 3×9 for numbers, square grid for emojis/photos */}
+        {cellType === 'numbers' ? (
+          <div className="space-y-1.5 mx-auto w-full" style={{ maxWidth: 380 }}>
+            {[0, 1, 2].map(row => (
+              <div key={row} className="grid gap-1" style={{ gridTemplateColumns: 'repeat(9, 1fr)' }}>
+                {Array.from({ length: 9 }, (_, col) => {
+                  const i = row * 9 + col
+                  const value = session.card[i]
+                  if (value === null) {
+                    return <div key={col} className="aspect-square rounded-md" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+                  }
+                  const isMarked = marked.includes(i)
+                  const isDrawable = drawnSet.has(value) && !isMarked && status === 'playing'
+                  return (
+                    <button
+                      key={col}
+                      onClick={() => tapCell(i)}
+                      className="relative aspect-square rounded-md flex items-center justify-center font-semibold transition-all overflow-visible"
+                      style={{
+                        backgroundColor: isMarked ? 'var(--w-primary)' : 'white',
+                        color: isMarked ? 'white' : 'var(--w-dark)',
+                        border: `1.5px solid ${isMarked ? 'var(--w-primary)' : isDrawable ? 'var(--w-primary)' : 'var(--w-accent)'}`,
+                        boxShadow: isDrawable ? '0 0 0 2px color-mix(in srgb, var(--w-primary) 30%, transparent)' : 'none',
+                        animation: shake === i ? 'cell-shake 0.4s' : undefined,
+                        fontSize: 'clamp(9px, 2.2vw, 14px)',
+                      }}
+                    >
+                      {value}
+                      {(cellSparks[i] ?? []).map(s => (
+                        <span key={s.id} style={{
+                          position: 'absolute', left: '50%', top: '50%', width: s.size, height: s.size,
+                          borderRadius: s.rounded ? '50%' : '2px', backgroundColor: s.color, pointerEvents: 'none', zIndex: 40,
+                          '--tx': `${s.tx}px`, '--ty': `${s.ty}px`, '--r': `${s.rot}deg`,
+                          animation: `spark-fly ${s.dur}s cubic-bezier(0.15,0.85,0.35,1) forwards`,
+                        } as React.CSSProperties} />
+                      ))}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-2 mx-auto" style={{ gridTemplateColumns: `repeat(${dim}, 1fr)`, maxWidth: dim * 92 }}>
+            {session.card.map((value, i) => {
+              const isMarked = marked.includes(i)
+              const isDrawable = value !== null && drawnSet.has(value) && !isMarked && status === 'playing'
+              return (
+                <button
+                  key={i}
+                  onClick={() => tapCell(i)}
+                  className="relative aspect-square rounded-xl flex items-center justify-center font-semibold transition-all overflow-visible"
+                  style={{
+                    backgroundColor: isMarked ? 'var(--w-primary)' : 'white',
+                    color: isMarked ? 'white' : 'var(--w-dark)',
+                    border: `2px solid ${isMarked ? 'var(--w-primary)' : isDrawable ? 'var(--w-primary)' : 'var(--w-accent)'}`,
+                    boxShadow: isDrawable ? '0 0 0 3px color-mix(in srgb, var(--w-primary) 30%, transparent)' : 'none',
+                    animation: shake === i ? 'cell-shake 0.4s' : undefined,
+                    fontSize: cellType === 'emojis' ? '1.6rem' : '1.1rem',
+                  }}
+                >
+                  {cellType === 'photos'
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={value ?? ''} alt="" className="absolute inset-0 w-full h-full object-cover rounded-[10px]" style={{ opacity: isMarked ? 0.45 : 1 }} />
+                    : value}
+                  {isMarked && cellType === 'photos' && <span className="relative text-white text-2xl">✓</span>}
 
-                {/* chiribitas */}
-                {(cellSparks[i] ?? []).map(s => (
-                  <span key={s.id} style={{
-                    position: 'absolute', left: '50%', top: '50%', width: s.size, height: s.size,
-                    borderRadius: s.rounded ? '50%' : '2px', backgroundColor: s.color, pointerEvents: 'none', zIndex: 40,
-                    '--tx': `${s.tx}px`, '--ty': `${s.ty}px`, '--r': `${s.rot}deg`,
-                    animation: `spark-fly ${s.dur}s cubic-bezier(0.15,0.85,0.35,1) forwards`,
-                  } as React.CSSProperties} />
-                ))}
-              </button>
-            )
-          })}
-        </div>
+                  {(cellSparks[i] ?? []).map(s => (
+                    <span key={s.id} style={{
+                      position: 'absolute', left: '50%', top: '50%', width: s.size, height: s.size,
+                      borderRadius: s.rounded ? '50%' : '2px', backgroundColor: s.color, pointerEvents: 'none', zIndex: 40,
+                      '--tx': `${s.tx}px`, '--ty': `${s.ty}px`, '--r': `${s.rot}deg`,
+                      animation: `spark-fly ${s.dur}s cubic-bezier(0.15,0.85,0.35,1) forwards`,
+                    } as React.CSSProperties} />
+                  ))}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Achievement */}
         {(hasLine || hasBingo) && (

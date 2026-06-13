@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-server'
-import { hasLine, hasBingo } from '@/lib/bingo'
+import { hasLine, hasBingo, hasSpanishLine, hasSpanishBingo } from '@/lib/bingo'
 
 const schema = z.object({
   player_id: z.string().uuid(),
-  index: z.number().int().min(0).max(24),
+  index: z.number().int().min(0).max(26),  // 26 = last index of a 3×9 Spanish card
 })
 
 export async function POST(req: NextRequest) {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const { data: game } = await supabase
       .from('bingo_games')
-      .select('id, status, drawn, card_size, line_prize_enabled, bingo_prize_enabled, line_awarded, bingo_awarded')
+      .select('id, status, drawn, cell_type, card_size, line_prize_enabled, bingo_prize_enabled, line_awarded, bingo_awarded')
       .eq('id', player.game_id)
       .single()
 
@@ -36,13 +36,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El juego no está en marcha', status: game.status }, { status: 409 })
     }
 
-    const card: string[] = player.card ?? []
+    const card: (string | null)[] = player.card ?? []
     if (index >= card.length) {
       return NextResponse.json({ error: 'Casilla no válida' }, { status: 400 })
     }
 
-    const drawn = new Set<string>(game.drawn ?? [])
     const value = card[index]
+    // Blank cells (null) on Spanish cards are not interactive
+    if (value === null || value === undefined) {
+      return NextResponse.json({ error: 'Casilla vacía', rejected: true }, { status: 200 })
+    }
+
+    const drawn = new Set<string>(game.drawn ?? [])
     const marked: number[] = player.marked ?? []
     const wasMarked = marked.includes(index)
 
@@ -55,8 +60,9 @@ export async function POST(req: NextRequest) {
       ? marked.filter(i => i !== index)
       : [...marked, index]
 
-    const nowLine = hasLine(newMarked, game.card_size)
-    const nowBingo = hasBingo(newMarked, game.card_size)
+    const isSpanish = game.cell_type === 'numbers'
+    const nowLine = isSpanish ? hasSpanishLine(newMarked, card) : hasLine(newMarked, game.card_size)
+    const nowBingo = isSpanish ? hasSpanishBingo(newMarked, card) : hasBingo(newMarked, game.card_size)
 
     await supabase
       .from('bingo_players')

@@ -23,7 +23,7 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(joinUrl)}`
 
   const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
-  const poolEnough = pool.length >= minPoolFor(game.card_size)
+  const poolEnough = game.cell_type === 'numbers' || pool.length >= minPoolFor(game.card_size)
   const isLive = game.status === 'playing' || game.status === 'paused'
 
   function flash(m: string) { setMsg(m); setTimeout(() => setMsg(''), 2500) }
@@ -245,13 +245,9 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
         </div>
 
         {game.cell_type === 'numbers' && (
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: UI.text }}>Número más alto</label>
-            <input type="number" min={game.card_size} max={999} value={game.number_max}
-              onChange={e => saveConfig({ number_max: Math.max(game.card_size, Number(e.target.value) || game.card_size) })}
-              className={inputClass} style={inputStyle} />
-            <p className="text-xs mt-1" style={{ color: UI.muted }}>Saldrán números del 1 al {game.number_max}.</p>
-          </div>
+          <p className="text-xs mt-1 px-3 py-2 rounded-lg" style={{ color: UI.text, backgroundColor: UI.bg }}>
+            Bingo español clásico · 90 bolas (1–90) · Cartones 3×9 con 15 números agrupados por decenas
+          </p>
         )}
 
         {game.cell_type === 'emojis' && (
@@ -298,24 +294,26 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
 
         {!poolEnough && (
           <p className="text-xs mt-3" style={{ color: UI.error }}>
-            Necesitas al menos {minPoolFor(game.card_size)} {game.cell_type === 'photos' ? 'fotos' : game.cell_type === 'emojis' ? 'emojis' : 'números'} para cartones de {SIZE_LABELS[game.card_size]} (ahora hay {pool.length}).
+            Necesitas al menos {minPoolFor(game.card_size)} {game.cell_type === 'photos' ? 'fotos' : 'emojis'} para cartones de {SIZE_LABELS[game.card_size]} (ahora hay {pool.length}).
           </p>
         )}
       </div>
 
-      {/* Card size */}
-      <div className={cardClass} style={cardStyle}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: UI.dark }}>Tamaño del cartón</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {[9, 16, 25].map(s => (
-            <button key={s} onClick={() => saveConfig({ card_size: s })}
-              className="py-2.5 rounded-xl text-sm font-medium transition-all"
-              style={{ backgroundColor: game.card_size === s ? UI.primary : '#fff', color: game.card_size === s ? '#fff' : UI.text, border: `1px solid ${game.card_size === s ? UI.primary : '#e5e5e5'}` }}>
-              {SIZE_LABELS[s]}
-            </button>
-          ))}
+      {/* Card size — only for emojis/photos, Spanish bingo is always 3×9 */}
+      {game.cell_type !== 'numbers' && (
+        <div className={cardClass} style={cardStyle}>
+          <h3 className="text-sm font-semibold mb-3" style={{ color: UI.dark }}>Tamaño del cartón</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {[9, 16, 25].map(s => (
+              <button key={s} onClick={() => saveConfig({ card_size: s })}
+                className="py-2.5 rounded-xl text-sm font-medium transition-all"
+                style={{ backgroundColor: game.card_size === s ? UI.primary : '#fff', color: game.card_size === s ? '#fff' : UI.text, border: `1px solid ${game.card_size === s ? UI.primary : '#e5e5e5'}` }}>
+                {SIZE_LABELS[s]}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Prizes */}
       <div className={cardClass} style={cardStyle}>

@@ -113,7 +113,7 @@ export interface BingoPlayer {
   id: string
   game_id: string
   name: string
-  card: string[]
+  card: (string | null)[]
   marked: number[]
   has_line: boolean
   has_bingo: boolean

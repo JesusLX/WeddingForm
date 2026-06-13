@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rate-limit'
-import { buildPool, generateCard, minPoolFor } from '@/lib/bingo'
+import { buildPool, generateCard, generateSpanishCard, minPoolFor, SPANISH_CARD_SIZE } from '@/lib/bingo'
 
 const schema = z.object({
   access_key: z.string().uuid(),
@@ -32,12 +32,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El juego ya ha terminado' }, { status: 400 })
     }
 
-    const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
-    if (pool.length < minPoolFor(game.card_size)) {
-      return NextResponse.json({ error: 'El juego aún no está configurado' }, { status: 400 })
+    let card: (string | null)[]
+    if (game.cell_type === 'numbers') {
+      card = generateSpanishCard()
+    } else {
+      const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
+      if (pool.length < minPoolFor(game.card_size)) {
+        return NextResponse.json({ error: 'El juego aún no está configurado' }, { status: 400 })
+      }
+      card = generateCard(pool, game.card_size)
     }
-
-    const card = generateCard(pool, game.card_size)
 
     const { data: player, error } = await supabase
       .from('bingo_players')
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
       game: {
         id: game.id,
         cell_type: game.cell_type,
-        card_size: game.card_size,
+        card_size: game.cell_type === 'numbers' ? SPANISH_CARD_SIZE : game.card_size,
         status: game.status,
         drawn: game.drawn ?? [],
       },
