@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { buildPool } from '@/lib/bingo'
+import { buildPool, shuffle } from '@/lib/bingo'
 
 const schema = z.object({
   action: z.enum(['start', 'draw', 'continue', 'pause', 'end', 'reset']),
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     // RLS (owner_all) guarantees this row belongs to the authenticated couple.
     const { data: game } = await supabase
       .from('bingo_games')
-      .select('id, cell_type, card_size, number_max, items, drawn, status')
+      .select('id, cell_type, card_size, number_max, items, drawn, status, fast_mode, fast_pool')
       .single()
 
     if (!game) return NextResponse.json({ error: 'Juego no encontrado' }, { status: 404 })
@@ -26,9 +26,26 @@ export async function POST(req: NextRequest) {
     let patch: Record<string, unknown> = {}
 
     switch (action) {
-      case 'start':
+      case 'start': {
         patch = { status: 'playing' }
+        if (game.fast_mode) {
+          // Compute pool = all numbers across every player's card + 20 random extras
+          const { data: players } = await supabase
+            .from('bingo_players')
+            .select('card')
+            .eq('game_id', game.id)
+          const inPlay = new Set<string>()
+          for (const p of players ?? []) {
+            for (const v of ((p.card as (string | null)[]) ?? [])) {
+              if (v !== null) inPlay.add(v)
+            }
+          }
+          const allNums = Array.from({ length: 90 }, (_, i) => String(i + 1))
+          const extras = shuffle(allNums.filter(n => !inPlay.has(n))).slice(0, 20)
+          patch.fast_pool = shuffle([...inPlay, ...extras])
+        }
         break
+      }
       case 'continue':
         patch = { status: 'playing', pending_claim: null }
         break
@@ -42,11 +59,14 @@ export async function POST(req: NextRequest) {
         await supabase.from('bingo_players').delete().eq('game_id', game.id)
         patch = {
           status: 'lobby', drawn: [], pending_claim: null,
-          line_awarded: false, bingo_awarded: false,
+          line_awarded: false, bingo_awarded: false, fast_pool: [],
         }
         break
       case 'draw': {
-        const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
+        const fastPool: string[] = game.fast_pool ?? []
+        const pool = (game.fast_mode && fastPool.length > 0)
+          ? fastPool
+          : buildPool(game.cell_type, game.items ?? [], game.number_max)
         const drawn: string[] = game.drawn ?? []
         const remaining = pool.filter(p => !drawn.includes(p))
         if (remaining.length === 0) {

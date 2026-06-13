@@ -111,6 +111,31 @@ export function hasSpanishBingo(markedIdx: number[], card: (string | null)[]): b
   return markedIdx.length >= totalFilled
 }
 
+/**
+ * Multi-card variants: card is a flat (string|null)[] of N×SPANISH_CARD_SIZE.
+ * "Línea" fires when any complete row exists in ANY card.
+ * "Bingo" fires when all 15 filled cells of ANY single card are marked.
+ */
+export function hasSpanishLineAny(markedIdx: number[], card: (string | null)[]): boolean {
+  const n = Math.floor(card.length / SPANISH_CARD_SIZE)
+  for (let c = 0; c < n; c++) {
+    const offset = c * SPANISH_CARD_SIZE
+    const localMarked = markedIdx.filter(i => i >= offset && i < offset + SPANISH_CARD_SIZE).map(i => i - offset)
+    if (hasSpanishLine(localMarked, card.slice(offset, offset + SPANISH_CARD_SIZE))) return true
+  }
+  return false
+}
+
+export function hasSpanishBingoAny(markedIdx: number[], card: (string | null)[]): boolean {
+  const n = Math.floor(card.length / SPANISH_CARD_SIZE)
+  for (let c = 0; c < n; c++) {
+    const offset = c * SPANISH_CARD_SIZE
+    const localMarked = markedIdx.filter(i => i >= offset && i < offset + SPANISH_CARD_SIZE).map(i => i - offset)
+    if (hasSpanishBingo(localMarked, card.slice(offset, offset + SPANISH_CARD_SIZE))) return true
+  }
+  return false
+}
+
 /** Index sets for each horizontal row of a square card. */
 export function rowsOf(size: number): number[][] {
   const dim = gridDim(size)

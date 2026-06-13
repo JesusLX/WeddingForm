@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase-server'
-import { hasLine, hasBingo, hasSpanishLine, hasSpanishBingo } from '@/lib/bingo'
+import { hasLine, hasBingo, hasSpanishLineAny, hasSpanishBingoAny } from '@/lib/bingo'
 
 const schema = z.object({
   player_id: z.string().uuid(),
-  index: z.number().int().min(0).max(26),  // 26 = last index of a 3×9 Spanish card
+  index: z.number().int().min(0).max(53),  // up to 53 for 2 × 3×9 Spanish cards
 })
 
 export async function POST(req: NextRequest) {
@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
       : [...marked, index]
 
     const isSpanish = game.cell_type === 'numbers'
-    const nowLine = isSpanish ? hasSpanishLine(newMarked, card) : hasLine(newMarked, game.card_size)
-    const nowBingo = isSpanish ? hasSpanishBingo(newMarked, card) : hasBingo(newMarked, game.card_size)
+    const nowLine = isSpanish ? hasSpanishLineAny(newMarked, card) : hasLine(newMarked, game.card_size)
+    const nowBingo = isSpanish ? hasSpanishBingoAny(newMarked, card) : hasBingo(newMarked, game.card_size)
 
     await supabase
       .from('bingo_players')

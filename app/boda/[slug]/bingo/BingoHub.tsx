@@ -245,47 +245,67 @@ export function BingoHub({
           </div>
         )}
 
-        {/* Card — Spanish 3×9 for numbers, square grid for emojis/photos */}
+        {/* Card — Spanish 3×9 for numbers (supports 1 or 2 cards), square for emojis/photos */}
         {cellType === 'numbers' ? (
-          <div className="space-y-1.5 mx-auto w-full" style={{ maxWidth: 380 }}>
-            {[0, 1, 2].map(row => (
-              <div key={row} className="grid gap-1" style={{ gridTemplateColumns: 'repeat(9, 1fr)' }}>
-                {Array.from({ length: 9 }, (_, col) => {
-                  const i = row * 9 + col
-                  const value = session.card[i]
-                  if (value === null) {
-                    return <div key={col} className="aspect-square rounded-md" style={{ backgroundColor: 'var(--w-accent)' }} />
-                  }
-                  const isMarked = marked.includes(i)
-                  const isDrawable = drawnSet.has(value) && !isMarked && status === 'playing'
-                  return (
-                    <button
-                      key={col}
-                      onClick={() => tapCell(i)}
-                      className="relative aspect-square rounded-md flex items-center justify-center font-semibold transition-all overflow-visible"
-                      style={{
-                        backgroundColor: isMarked ? 'var(--w-primary)' : 'white',
-                        color: isMarked ? 'white' : 'var(--w-dark)',
-                        border: `1.5px solid ${isMarked ? 'var(--w-primary)' : isDrawable ? 'var(--w-primary)' : 'var(--w-accent)'}`,
-                        boxShadow: isDrawable ? '0 0 0 2px color-mix(in srgb, var(--w-primary) 30%, transparent)' : 'none',
-                        animation: shake === i ? 'cell-shake 0.4s' : undefined,
-                        fontSize: 'clamp(9px, 2.2vw, 14px)',
-                      }}
-                    >
-                      {value}
-                      {(cellSparks[i] ?? []).map(s => (
-                        <span key={s.id} style={{
-                          position: 'absolute', left: '50%', top: '50%', width: s.size, height: s.size,
-                          borderRadius: s.rounded ? '50%' : '2px', backgroundColor: s.color, pointerEvents: 'none', zIndex: 40,
-                          '--tx': `${s.tx}px`, '--ty': `${s.ty}px`, '--r': `${s.rot}deg`,
-                          animation: `spark-fly ${s.dur}s cubic-bezier(0.15,0.85,0.35,1) forwards`,
-                        } as React.CSSProperties} />
-                      ))}
-                    </button>
-                  )
-                })}
-              </div>
-            ))}
+          <div className="space-y-4 mx-auto w-full" style={{ maxWidth: 390 }}>
+            {Array.from({ length: session.card.length / SPANISH_CARD_SIZE }, (_, cardIdx) => {
+              const offset = cardIdx * SPANISH_CARD_SIZE
+              const numCards = session.card.length / SPANISH_CARD_SIZE
+              return (
+                <div key={cardIdx}>
+                  {numCards > 1 && (
+                    <p className="text-[10px] uppercase tracking-widest mb-1.5 text-center font-medium" style={{ color: 'var(--w-primary)' }}>
+                      Cartón {cardIdx + 1}
+                    </p>
+                  )}
+                  <div className="rounded-2xl overflow-hidden border-2" style={{ borderColor: 'var(--w-accent)' }}>
+                    {[0, 1, 2].map(row => (
+                      <div key={row} className="grid" style={{ gridTemplateColumns: 'repeat(9, 1fr)' }}>
+                        {Array.from({ length: 9 }, (_, col) => {
+                          const localIdx = row * 9 + col
+                          const i = offset + localIdx
+                          const value = session.card[i]
+                          if (value === null) {
+                            return (
+                              <div key={col} className="aspect-square"
+                                style={{ backgroundColor: 'var(--w-accent)', borderRight: col < 8 ? '1px solid rgba(255,255,255,0.4)' : undefined, borderBottom: row < 2 ? '1px solid rgba(255,255,255,0.4)' : undefined }} />
+                            )
+                          }
+                          const isMarked = marked.includes(i)
+                          const isDrawable = drawnSet.has(value) && !isMarked && status === 'playing'
+                          return (
+                            <button
+                              key={col}
+                              onClick={() => tapCell(i)}
+                              className="relative aspect-square flex items-center justify-center font-bold transition-all overflow-visible"
+                              style={{
+                                backgroundColor: isMarked ? 'var(--w-primary)' : 'white',
+                                color: isMarked ? 'white' : 'var(--w-dark)',
+                                borderRight: col < 8 ? `1px solid ${isMarked ? 'var(--w-primary)' : 'var(--w-accent)'}` : undefined,
+                                borderBottom: row < 2 ? `1px solid ${isMarked ? 'var(--w-primary)' : 'var(--w-accent)'}` : undefined,
+                                boxShadow: isDrawable ? 'inset 0 0 0 2px var(--w-primary)' : 'none',
+                                animation: shake === i ? 'cell-shake 0.4s' : undefined,
+                                fontSize: 'clamp(9px, 2.4vw, 15px)',
+                              }}
+                            >
+                              {value}
+                              {(cellSparks[i] ?? []).map(s => (
+                                <span key={s.id} style={{
+                                  position: 'absolute', left: '50%', top: '50%', width: s.size, height: s.size,
+                                  borderRadius: s.rounded ? '50%' : '2px', backgroundColor: s.color, pointerEvents: 'none', zIndex: 40,
+                                  '--tx': `${s.tx}px`, '--ty': `${s.ty}px`, '--r': `${s.rot}deg`,
+                                  animation: `spark-fly ${s.dur}s cubic-bezier(0.15,0.85,0.35,1) forwards`,
+                                } as React.CSSProperties} />
+                              ))}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         ) : (
           <div className="grid gap-2 mx-auto" style={{ gridTemplateColumns: `repeat(${dim}, 1fr)`, maxWidth: dim * 92 }}>

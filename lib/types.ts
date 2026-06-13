@@ -104,6 +104,9 @@ export interface BingoGame {
   line_awarded: boolean
   bingo_awarded: boolean
   pending_claim: { player_id: string; name: string; type: 'line' | 'bingo' } | null
+  cards_per_player: number
+  fast_mode: boolean
+  fast_pool: string[]
   access_key: string
   created_at: string
   updated_at: string

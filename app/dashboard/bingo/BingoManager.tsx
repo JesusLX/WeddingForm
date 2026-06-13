@@ -22,7 +22,9 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
   const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/boda/${weddingSlug}/bingo` : `/boda/${weddingSlug}/bingo`
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(joinUrl)}`
 
-  const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
+  const pool = (game.fast_mode && (game.fast_pool ?? []).length > 0)
+    ? game.fast_pool
+    : buildPool(game.cell_type, game.items ?? [], game.number_max)
   const poolEnough = game.cell_type === 'numbers' || pool.length >= minPoolFor(game.card_size)
   const isLive = game.status === 'playing' || game.status === 'paused'
 
@@ -298,6 +300,35 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
           </p>
         )}
       </div>
+
+      {/* Cards per player */}
+      <div className={cardClass} style={cardStyle}>
+        <h3 className="text-sm font-semibold mb-1" style={{ color: UI.dark }}>Cartones por jugador</h3>
+        <p className="text-xs mb-3" style={{ color: UI.muted }}>Cada invitado recibe 1 o 2 cartones a la vez.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {[1, 2].map(n => (
+            <button key={n} onClick={() => saveConfig({ cards_per_player: n })}
+              className="py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={{ backgroundColor: game.cards_per_player === n ? UI.primary : '#fff', color: game.cards_per_player === n ? '#fff' : UI.text, border: `1px solid ${game.cards_per_player === n ? UI.primary : '#e5e5e5'}` }}>
+              {n === 1 ? '1 cartón' : '2 cartones'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Fast mode */}
+      {game.cell_type === 'numbers' && (
+        <div className={cardClass} style={cardStyle}>
+          <label className="flex items-center gap-3 cursor-pointer mb-1">
+            <input type="checkbox" checked={game.fast_mode} onChange={e => saveConfig({ fast_mode: e.target.checked })}
+              className="w-4 h-4 rounded" style={{ accentColor: UI.primary }} />
+            <span className="text-sm font-medium" style={{ color: UI.dark }}>Modo rápido</span>
+          </label>
+          <p className="text-xs pl-7" style={{ color: UI.muted }}>
+            Al empezar la partida, el pool se reduce a los números en juego (en los cartones de los jugadores) más 20 extras aleatorios. Ideal para pocas personas.
+          </p>
+        </div>
+      )}
 
       {/* Card size — only for emojis/photos, Spanish bingo is always 3×9 */}
       {game.cell_type !== 'numbers' && (

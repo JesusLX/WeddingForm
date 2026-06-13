@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     const { data: game } = await supabase
       .from('bingo_games')
-      .select('id, enabled, status, cell_type, card_size, number_max, items, drawn')
+      .select('id, enabled, status, cell_type, card_size, number_max, items, drawn, cards_per_player')
       .eq('access_key', access_key)
       .single()
 
@@ -32,15 +32,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El juego ya ha terminado' }, { status: 400 })
     }
 
+    const numCards: number = game.cards_per_player ?? 1
     let card: (string | null)[]
     if (game.cell_type === 'numbers') {
-      card = generateSpanishCard()
+      // Generate numCards Spanish cards concatenated into one flat array
+      card = Array.from({ length: numCards }, () => generateSpanishCard()).flat()
     } else {
       const pool = buildPool(game.cell_type, game.items ?? [], game.number_max)
       if (pool.length < minPoolFor(game.card_size)) {
         return NextResponse.json({ error: 'El juego aún no está configurado' }, { status: 400 })
       }
-      card = generateCard(pool, game.card_size)
+      card = Array.from({ length: numCards }, () => generateCard(pool, game.card_size)).flat()
     }
 
     const { data: player, error } = await supabase
