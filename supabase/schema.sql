@@ -307,3 +307,70 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER weddings_updated_at
   BEFORE UPDATE ON weddings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- FEATURE: ZONA DE JUEGOS — BINGO
+-- ============================================================
+CREATE TABLE IF NOT EXISTS bingo_games (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wedding_id UUID REFERENCES weddings ON DELETE CASCADE NOT NULL UNIQUE,
+  enabled BOOLEAN DEFAULT false,
+  cell_type TEXT NOT NULL DEFAULT 'numbers' CHECK (cell_type IN ('numbers', 'emojis', 'photos')),
+  card_size INT NOT NULL DEFAULT 9 CHECK (card_size IN (9, 16, 25)),
+  number_max INT NOT NULL DEFAULT 75,
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'lobby' CHECK (status IN ('lobby', 'playing', 'paused', 'finished')),
+  mode TEXT NOT NULL DEFAULT 'manual' CHECK (mode IN ('manual', 'auto')),
+  auto_interval INT NOT NULL DEFAULT 6,
+  drawn JSONB NOT NULL DEFAULT '[]'::jsonb,
+  line_prize_enabled BOOLEAN DEFAULT true,
+  bingo_prize_enabled BOOLEAN DEFAULT true,
+  line_awarded BOOLEAN DEFAULT false,
+  bingo_awarded BOOLEAN DEFAULT false,
+  pending_claim JSONB,
+  access_key UUID DEFAULT gen_random_uuid() NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE bingo_games ENABLE ROW LEVEL SECURITY;
+-- Only the couple manages their game. All guest-facing reads/writes go through
+-- API routes using the admin client (validated server-side), so no public RLS.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'bingo_games' AND policyname = 'owner_all'
+  ) THEN
+    CREATE POLICY "owner_all" ON bingo_games FOR ALL
+      USING (wedding_id IN (SELECT id FROM weddings WHERE user_id = auth.uid()));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS bingo_players (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id UUID REFERENCES bingo_games ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  card JSONB NOT NULL DEFAULT '[]'::jsonb,
+  marked JSONB NOT NULL DEFAULT '[]'::jsonb,
+  has_line BOOLEAN DEFAULT false,
+  has_bingo BOOLEAN DEFAULT false,
+  joined_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bingo_players_game_idx ON bingo_players (game_id);
+ALTER TABLE bingo_players ENABLE ROW LEVEL SECURITY;
+-- Couple reads their players via owner_all; guest writes go through the admin client.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'bingo_players' AND policyname = 'owner_all'
+  ) THEN
+    CREATE POLICY "owner_all" ON bingo_players FOR ALL
+      USING (game_id IN (
+        SELECT bg.id FROM bingo_games bg
+        JOIN weddings w ON w.id = bg.wedding_id
+        WHERE w.user_id = auth.uid()
+      ));
+  END IF;
+END $$;
+
+DROP TRIGGER IF EXISTS bingo_games_updated_at ON bingo_games;
+CREATE TRIGGER bingo_games_updated_at
+  BEFORE UPDATE ON bingo_games
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();

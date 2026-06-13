@@ -104,6 +104,14 @@ const ICONS = {
       <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
     </Svg>
   ),
+  bingo: (
+    <Svg>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="8" cy="8" r="1.2" /><circle cx="16" cy="8" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="8" cy="16" r="1.2" /><circle cx="16" cy="16" r="1.2" />
+    </Svg>
+  ),
 }
 
 type NavItem = {
@@ -156,6 +164,12 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: '/dashboard/galeria-colaborativa', label: 'Galería colaborativa', icon: ICONS.camera },
       { href: '/dashboard/recordatorios', label: 'Recordatorios', icon: ICONS.mail },
       { href: '/dashboard/mesas', label: 'Distribución de mesas', icon: ICONS.mesas },
+    ],
+  },
+  {
+    label: 'Juegos',
+    items: [
+      { href: '/dashboard/bingo', label: 'Bingo', icon: ICONS.bingo },
     ],
   },
 ]

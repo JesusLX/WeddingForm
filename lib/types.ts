@@ -87,6 +87,39 @@ export interface GuestPhoto {
   created_at: string
 }
 
+export interface BingoGame {
+  id: string
+  wedding_id: string
+  enabled: boolean
+  cell_type: 'numbers' | 'emojis' | 'photos'
+  card_size: number
+  number_max: number
+  items: string[]
+  status: 'lobby' | 'playing' | 'paused' | 'finished'
+  mode: 'manual' | 'auto'
+  auto_interval: number
+  drawn: string[]
+  line_prize_enabled: boolean
+  bingo_prize_enabled: boolean
+  line_awarded: boolean
+  bingo_awarded: boolean
+  pending_claim: { player_id: string; name: string; type: 'line' | 'bingo' } | null
+  access_key: string
+  created_at: string
+  updated_at: string
+}
+
+export interface BingoPlayer {
+  id: string
+  game_id: string
+  name: string
+  card: string[]
+  marked: number[]
+  has_line: boolean
+  has_bingo: boolean
+  joined_at: string
+}
+
 export interface MenuOption {
   id: string
   wedding_id: string
