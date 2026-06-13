@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { BingoGame } from '@/lib/types'
 import { UI, cardClass, cardStyle, inputClass, inputStyle, primaryButtonClass, primaryButtonStyle } from '@/lib/ui'
@@ -18,6 +18,8 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
   const [uploading, setUploading] = useState(false)
   const [msg, setMsg] = useState('')
   const [copied, setCopied] = useState(false)
+  const [drawing, setDrawing] = useState(false)
+  const drawingRef = useRef(false)
 
   const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/boda/${weddingSlug}/bingo` : `/boda/${weddingSlug}/bingo`
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(joinUrl)}`
@@ -66,13 +68,26 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
     return () => { active = false; clearInterval(t) }
   }, [game.status])
 
+  // ---- Draw with lock (prevents double-draw on fast taps or slow network) ----
+  const draw = useCallback(async () => {
+    if (drawingRef.current) return
+    drawingRef.current = true
+    setDrawing(true)
+    try {
+      await control('draw')
+    } finally {
+      drawingRef.current = false
+      setDrawing(false)
+    }
+  }, [control])
+
   // ---- Auto draw ----
   useEffect(() => {
     if (game.mode !== 'auto' || game.status !== 'playing' || game.pending_claim) return
     const ms = Math.max(2, game.auto_interval) * 1000
-    const t = setInterval(() => { control('draw') }, ms)
+    const t = setInterval(() => { draw() }, ms)
     return () => clearInterval(t)
-  }, [game.mode, game.status, game.pending_claim, game.auto_interval, control])
+  }, [game.mode, game.status, game.pending_claim, game.auto_interval, draw])
 
   async function uploadPhoto(file: File) {
     setUploading(true)
@@ -137,12 +152,12 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
             <div className="flex flex-wrap gap-2 justify-center mt-4">
               {!game.pending_claim && (
                 <button
-                  onClick={() => control('draw')}
-                  disabled={game.status === 'paused'}
+                  onClick={draw}
+                  disabled={game.status === 'paused' || drawing}
                   className={primaryButtonClass}
-                  style={{ ...primaryButtonStyle, opacity: game.status === 'paused' ? 0.5 : 1 }}
+                  style={{ ...primaryButtonStyle, opacity: (game.status === 'paused' || drawing) ? 0.5 : 1 }}
                 >
-                  Sacar siguiente
+                  {drawing ? 'Sacando…' : 'Sacar siguiente'}
                 </button>
               )}
               <button
@@ -324,9 +339,17 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
               className="w-4 h-4 rounded" style={{ accentColor: UI.primary }} />
             <span className="text-sm font-medium" style={{ color: UI.dark }}>Modo rápido</span>
           </label>
-          <p className="text-xs pl-7" style={{ color: UI.muted }}>
-            Al empezar la partida, el pool se reduce a los números en juego (en los cartones de los jugadores) más 20 extras aleatorios. Ideal para pocas personas.
+          <p className="text-xs pl-7 mb-3" style={{ color: UI.muted }}>
+            Al empezar, el pool se reduce a los números en juego + N extras aleatorios. Ideal para pocas personas.
           </p>
+          {game.fast_mode && (
+            <div className="pl-7 flex items-center gap-2">
+              <label className="text-xs" style={{ color: UI.text }}>Números extra:</label>
+              <input type="number" min={0} max={89} value={game.fast_pool_extras ?? 20}
+                onChange={e => saveConfig({ fast_pool_extras: Math.min(89, Math.max(0, Number(e.target.value) || 0)) })}
+                className={inputClass} style={{ ...inputStyle, width: 72 }} />
+            </div>
+          )}
         </div>
       )}
 

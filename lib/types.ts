@@ -107,6 +107,7 @@ export interface BingoGame {
   cards_per_player: number
   fast_mode: boolean
   fast_pool: string[]
+  fast_pool_extras: number
   access_key: string
   created_at: string
   updated_at: string

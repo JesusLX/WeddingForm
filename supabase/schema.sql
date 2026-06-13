@@ -373,6 +373,7 @@ END $$;
 ALTER TABLE bingo_games ADD COLUMN IF NOT EXISTS cards_per_player INT NOT NULL DEFAULT 1 CHECK (cards_per_player IN (1, 2));
 ALTER TABLE bingo_games ADD COLUMN IF NOT EXISTS fast_mode BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE bingo_games ADD COLUMN IF NOT EXISTS fast_pool JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE bingo_games ADD COLUMN IF NOT EXISTS fast_pool_extras INT NOT NULL DEFAULT 20;
 
 DROP TRIGGER IF EXISTS bingo_games_updated_at ON bingo_games;
 CREATE TRIGGER bingo_games_updated_at

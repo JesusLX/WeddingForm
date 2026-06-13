@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     // RLS (owner_all) guarantees this row belongs to the authenticated couple.
     const { data: game } = await supabase
       .from('bingo_games')
-      .select('id, cell_type, card_size, number_max, items, drawn, status, fast_mode, fast_pool')
+      .select('id, cell_type, card_size, number_max, items, drawn, status, fast_mode, fast_pool, fast_pool_extras')
       .single()
 
     if (!game) return NextResponse.json({ error: 'Juego no encontrado' }, { status: 404 })
@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
               if (v !== null) inPlay.add(v)
             }
           }
+          const extrasCount = Math.max(0, game.fast_pool_extras ?? 20)
           const allNums = Array.from({ length: 90 }, (_, i) => String(i + 1))
-          const extras = shuffle(allNums.filter(n => !inPlay.has(n))).slice(0, 20)
+          const extras = shuffle(allNums.filter(n => !inPlay.has(n))).slice(0, extrasCount)
           patch.fast_pool = shuffle([...inPlay, ...extras])
         }
         break
