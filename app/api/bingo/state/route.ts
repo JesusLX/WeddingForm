@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient()
   const { data: game } = await supabase
     .from('bingo_games')
-    .select('id, enabled, status, drawn, cell_type, card_size, pending_claim')
+    .select('id, enabled, status, drawn, cell_type, card_size, pending_claim, reactions')
     .eq('access_key', accessKey)
     .single()
 
@@ -36,6 +36,11 @@ export async function GET(req: NextRequest) {
     if (player) player_card = player.card as (string | null)[]
   }
 
+  // Only return reactions from the last 6 seconds
+  const now = Date.now()
+  const reactions = ((game.reactions as Array<{ sent_at: number }>) ?? [])
+    .filter(r => now - r.sent_at < 6000)
+
   return NextResponse.json({
     status: game.status,
     drawn: game.drawn ?? [],
@@ -44,5 +49,6 @@ export async function GET(req: NextRequest) {
     paused_for_claim: !!game.pending_claim,
     player_exists,
     player_card,
+    reactions,
   })
 }

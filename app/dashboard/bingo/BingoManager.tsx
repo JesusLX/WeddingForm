@@ -6,6 +6,8 @@ import { UI, cardClass, cardStyle, inputClass, inputStyle, primaryButtonClass, p
 import { buildPool, minPoolFor, type BingoCellType } from '@/lib/bingo'
 
 type Player = { id: string; name: string; has_line: boolean; has_bingo: boolean; marked_count: number }
+type Reaction = { id: string; emoji: string; sent_at: number }
+type FloatingEmoji = { id: string; emoji: string; x: number }
 
 const SIZE_LABELS: Record<number, string> = { 9: '3 × 3', 16: '4 × 4', 25: '5 × 5' }
 const CELL_LABELS: Record<BingoCellType, string> = { numbers: 'Números', emojis: 'Emojis', photos: 'Fotos' }
@@ -20,6 +22,8 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
   const [copied, setCopied] = useState(false)
   const [drawing, setDrawing] = useState(false)
   const drawingRef = useRef(false)
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([])
+  const seenReactionIds = useRef(new Set<string>())
 
   const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/boda/${weddingSlug}/bingo` : `/boda/${weddingSlug}/bingo`
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(joinUrl)}`
@@ -62,6 +66,22 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
       if (!active) return
       if (json.game) setGame(g => ({ ...g, ...json.game }))
       if (json.players) setPlayers(json.players)
+
+      // Floating emoji reactions
+      const now = Date.now()
+      const fresh = ((json.game?.reactions ?? []) as Reaction[])
+        .filter(r => !seenReactionIds.current.has(r.id) && now - r.sent_at < 6000)
+      for (const r of fresh) seenReactionIds.current.add(r.id)
+      if (fresh.length > 0) {
+        setFloatingEmojis(prev => {
+          const added: FloatingEmoji[] = fresh.map(r => ({ id: r.id, emoji: r.emoji, x: Math.random() * 70 + 15 }))
+          return [...prev, ...added].slice(-15)
+        })
+        for (const r of fresh) {
+          const id = r.id
+          setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 3200)
+        }
+      }
     }
     poll()
     const t = setInterval(poll, 2500)
@@ -112,6 +132,14 @@ export function BingoManager({ initialGame, weddingSlug }: { initialGame: BingoG
   if (isLive || game.status === 'finished') {
     return (
       <div className="space-y-4">
+        <style>{`@keyframes float-emoji { 0%{transform:translateY(0) scale(1.1);opacity:0.85} 80%{opacity:0.5} 100%{transform:translateY(-230px) scale(0.7);opacity:0} }`}</style>
+        {floatingEmojis.map(fe => (
+          <div key={fe.id} style={{
+            position: 'fixed', left: `${fe.x}%`, bottom: '28%',
+            fontSize: '2.2rem', pointerEvents: 'none', zIndex: 55,
+            animation: 'float-emoji 3.2s ease-out forwards',
+          }}>{fe.emoji}</div>
+        ))}
         {/* Pending claim banner */}
         {game.pending_claim && (
           <div className="rounded-2xl p-5 text-center" style={{ backgroundColor: '#FFF6E0', border: `2px solid ${UI.primary}` }}>

@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data: game } = await supabase
     .from('bingo_games')
-    .select('id, status, drawn, mode, pending_claim, line_awarded, bingo_awarded, card_size, cell_type, fast_mode, fast_pool, cards_per_player')
+    .select('id, status, drawn, mode, pending_claim, line_awarded, bingo_awarded, card_size, cell_type, fast_mode, fast_pool, cards_per_player, reactions')
     .single()
 
   if (!game) return NextResponse.json({ error: 'Juego no encontrado' }, { status: 404 })

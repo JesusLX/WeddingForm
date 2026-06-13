@@ -1,7 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type React from 'react'
 import { gridDim, SPANISH_CARD_SIZE, type BingoCellType, type BingoStatus } from '@/lib/bingo'
+
+const REACTION_EMOJIS = ['💕', '🎉', '👏', '🥂', '💃', '🎊', '❤️', '🥳']
+type Reaction = { id: string; emoji: string; sent_at: number }
+type FloatingEmoji = { id: string; emoji: string; x: number }
 
 // cellType is stored in the session to detect mode changes (e.g. numbers → emojis).
 type Session = { playerId: string; name: string; card: (string | null)[]; cellType: BingoCellType }
@@ -51,6 +55,11 @@ export function BingoHub({
   const [cellSparks, setCellSparks] = useState<Record<number, Spark[]>>({})
   const [shake, setShake] = useState<number | null>(null)
   const [banner, setBanner] = useState<string | null>(null)
+
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([])
+  const seenReactionIds = useRef(new Set<string>())
+  const [reactCooldown, setReactCooldown] = useState(false)
+  const reactCooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const dim = gridDim(cardSize)
   const drawnSet = new Set(drawn)
@@ -107,6 +116,22 @@ export function BingoHub({
 
       setDrawn(json.drawn ?? [])
       setStatus(json.status)
+
+      // Floating emoji reactions
+      const now = Date.now()
+      const fresh = ((json.reactions ?? []) as Reaction[])
+        .filter(r => !seenReactionIds.current.has(r.id) && now - r.sent_at < 6000)
+      for (const r of fresh) seenReactionIds.current.add(r.id)
+      if (fresh.length > 0) {
+        setFloatingEmojis(prev => {
+          const added: FloatingEmoji[] = fresh.map(r => ({ id: r.id, emoji: r.emoji, x: Math.random() * 70 + 15 }))
+          return [...prev, ...added].slice(-15)
+        })
+        for (const r of fresh) {
+          const id = r.id
+          setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 3200)
+        }
+      }
 
       // If the server returns a different card (reset with name preservation),
       // update the session and clear marks so the guest sees their new card.
@@ -181,6 +206,17 @@ export function BingoHub({
     else if (json.claim === 'line') celebrate('¡LÍNEA! ✨')
   }
 
+  async function sendReaction(emoji: string) {
+    if (!session || reactCooldown) return
+    setReactCooldown(true)
+    if (reactCooldownTimer.current) clearTimeout(reactCooldownTimer.current)
+    reactCooldownTimer.current = setTimeout(() => setReactCooldown(false), 4000)
+    await fetch('/api/bingo/react', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player_id: session.playerId, emoji }),
+    })
+  }
+
   function celebrate(text: string) {
     setBanner(text)
     setConfetti(makeSparks(70, 320))
@@ -193,6 +229,7 @@ export function BingoHub({
     @keyframes cell-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
     @keyframes banner-in { from{transform:translateY(-20px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
     @keyframes pop-in { from{transform:scale(0.96);opacity:0} to{transform:scale(1);opacity:1} }
+    @keyframes float-emoji { 0%{transform:translateY(0) scale(1.1);opacity:0.85} 80%{opacity:0.5} 100%{transform:translateY(-230px) scale(0.7);opacity:0} }
   `
 
   // ---------- NAME ENTRY ----------
@@ -223,6 +260,17 @@ export function BingoHub({
   return (
     <div className="min-h-screen px-4 py-8 relative overflow-hidden">
       <style>{keyframes}</style>
+
+      {/* Floating emoji reactions */}
+      {floatingEmojis.map(fe => (
+        <div key={fe.id} style={{
+          position: 'fixed', left: `${fe.x}%`, bottom: '28%',
+          fontSize: '2.2rem', pointerEvents: 'none', zIndex: 55,
+          animation: 'float-emoji 3.2s ease-out forwards',
+        }}>
+          {fe.emoji}
+        </div>
+      ))}
 
       {/* Confetti */}
       {confetti.map(s => (
@@ -372,6 +420,22 @@ export function BingoHub({
           <p className="mt-5 text-sm font-medium" style={{ color: 'var(--w-primary)' }}>
             {hasBingo ? '🏆 ¡Has hecho bingo!' : '✨ ¡Has hecho línea!'}
           </p>
+        )}
+
+        {/* Emoji reaction picker — visible during play/pause */}
+        {(status === 'playing' || status === 'paused') && (
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--w-accent)' }}>
+            <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--w-dark)', opacity: 0.4 }}>Reaccionar</p>
+            <div className="flex justify-center gap-2 flex-wrap">
+              {REACTION_EMOJIS.map(emoji => (
+                <button key={emoji} onClick={() => sendReaction(emoji)} disabled={reactCooldown}
+                  className="text-2xl transition-opacity active:scale-110"
+                  style={{ opacity: reactCooldown ? 0.3 : 1 }}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
