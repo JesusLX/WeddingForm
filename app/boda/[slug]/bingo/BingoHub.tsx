@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import type React from 'react'
-import { gridDim, type BingoCellType, type BingoStatus } from '@/lib/bingo'
+import { gridDim, SPANISH_CARD_SIZE, type BingoCellType, type BingoStatus } from '@/lib/bingo'
 
 type Session = { playerId: string; name: string; card: (string | null)[] }
 
@@ -61,8 +61,14 @@ export function BingoHub({
     if (!raw) return
     try {
       const s = JSON.parse(raw) as Session
+      if (!s.playerId || !Array.isArray(s.card)) return
+      // Invalidate stale sessions from old square-grid format
+      if (cellType === 'numbers' && s.card.length !== SPANISH_CARD_SIZE) {
+        localStorage.removeItem(storageKey)
+        return
+      }
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (s.playerId && Array.isArray(s.card)) setSession(s)
+      setSession(s)
     } catch {}
   }, [storageKey])
 
@@ -71,17 +77,38 @@ export function BingoHub({
     if (!session) return
     let active = true
     async function run() {
-      const res = await fetch(`/api/bingo/state?access_key=${accessKey}`)
+      const res = await fetch(
+        `/api/bingo/state?access_key=${accessKey}&player_id=${session!.playerId}`
+      )
       if (!res.ok || !active) return
       const json = await res.json()
       if (!active) return
+
+      // Game was reset — player row deleted. Go back to name-entry screen.
+      if (json.player_exists === false) {
+        localStorage.removeItem(storageKey)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSession(null)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMarked([])
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDrawn([])
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setHasLine(false)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setHasBingo(false)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setBanner(null)
+        return
+      }
+
       setDrawn(json.drawn ?? [])
       setStatus(json.status)
     }
     run()
     const t = setInterval(run, 2500)
     return () => { active = false; clearInterval(t) }
-  }, [session, accessKey])
+  }, [session, accessKey, storageKey])
 
   async function join() {
     if (!name.trim()) return
@@ -227,7 +254,7 @@ export function BingoHub({
                   const i = row * 9 + col
                   const value = session.card[i]
                   if (value === null) {
-                    return <div key={col} className="aspect-square rounded-md" style={{ backgroundColor: 'rgba(0,0,0,0.05)' }} />
+                    return <div key={col} className="aspect-square rounded-md" style={{ backgroundColor: 'var(--w-accent)' }} />
                   }
                   const isMarked = marked.includes(i)
                   const isDrawable = drawnSet.has(value) && !isMarked && status === 'playing'
